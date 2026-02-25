@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  subordinates:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      # Mount personal data directory for persistence
+      - ./data:/app/data
+      # Mount .env for API keys
+      - ../.env:/app/.env:ro
+    environment:
+      - DATABASE_PATH=/app/data/subordinates.db
+    stdin_open: true
+    tty: true
