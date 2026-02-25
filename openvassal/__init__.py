@@ -1,3 +1,3 @@
-"""Subordinates — AI Personal Assistant Multi-Agent System."""
+"""OpenVassal — AI Personal Assistant Multi-Agent System."""
 
 __version__ = "0.1.0"

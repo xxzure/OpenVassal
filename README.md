@@ -1,49 +1,57 @@
-# OpenVassal — AI Personal Assistant
+# ⚡ OpenVassal
 
-> A multi-agent AI personal assistant with a steward/sub-agent architecture.
-> Each agent is a plug-in that can use its own LLM. Break data barriers by
-> merging all your personal data into one unified store.
+An open-source AI personal assistant powered by multiple agents, each with its own LLM.
 
-## Quick Start
+## Setup
 
 ```bash
-git clone <repo-url> && cd openvassal
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env          # add your API key(s)
-openvassal --setup             # launch the config UI
-openvassal                     # starts the interactive CLI
+cp .env.example .env   # add your OPENAI_API_KEY
 ```
 
-## Architecture
+## Usage
 
-```
-You ──▶ Steward Agent ──┬──▶ Coding Agent
-                        ├──▶ Daily Work Agent
-                        └──▶ … (plug-in more)
-                             │
-                        SQLite (unified data store)
+```bash
+openvassal --setup     # web UI at http://127.0.0.1:8585
+openvassal             # terminal chat
 ```
 
-## Key Features
+## How It Works
 
-- **Multi-LLM**: each agent picks its own model (OpenAI / Anthropic / Gemini)
-- **Plugin-based**: drop a new agent module in `openvassal/agents/` and register
-  it in `agents.yaml` — done
-- **Insurance-style plans**: base subscription + per-agent add-ons
-- **Local-first**: SQLite database, runs anywhere
-- **Web UI**: config dashboard + chat interface at `http://127.0.0.1:8585`
-
-## Project Layout
+A **Steward** agent receives your messages and routes them to the right sub-agent:
 
 ```
-openvassal/             ← Python package
-├── agents/             ← plug-in sub-agents
-├── data/               ← unified data store & connectors
-├── plans/              ← cost / subscription logic
-├── web/                ← FastAPI server + chat & config UI
-└── main.py             ← CLI entry point
-docker/                 ← Dockerfile & Compose
-tests/                  ← pytest unit tests
-agents.yaml             ← agent registry
+You → Steward → Coding Agent      (code snippets, debugging)
+              → Daily Work Agent   (tasks, notes, productivity)
+              → ...more agents     (add your own)
 ```
+
+All data is stored in a local **SQLite** database.
+
+## Web UI
+
+- **`/`** — Settings: API keys, models, agents, plans
+- **`/chat`** — Chat with the Steward and see which agent responds
+
+## Add a New Agent
+
+1. Create `openvassal/agents/my_agent.py` (subclass `BaseAgent`)
+2. Add an entry to `agents.yaml`
+3. Restart — the Steward auto-discovers it
+
+## Configuration
+
+Edit `.env` for API keys and defaults, or use the web UI (`openvassal --setup`).
+
+Supports **OpenAI**, **Anthropic** (Claude), and **Google Gemini** via LiteLLM.
+
+## Testing
+
+```bash
+pytest tests/ -v   # 20 tests
+```
+
+## License
+
+MIT
