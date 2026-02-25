@@ -6,7 +6,7 @@ Each sub-agent is an add-on plan (like adding coverage to an insurance policy).
 
 from __future__ import annotations
 
-from subordinates.models import PlanTier, UserSubscription
+from openvassal.models import PlanTier, UserSubscription
 
 
 # ── Available plan tiers ──────────────────────────────────

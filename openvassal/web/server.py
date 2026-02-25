@@ -1,6 +1,6 @@
-"""FastAPI config + chat server — reads/writes .env and agents.yaml, and provides a chat API.
+"""FastAPI config + chat server for OpenVassal.
 
-Start with:  subordinates --setup
+Start with:  openvassal --setup
 """
 
 from __future__ import annotations
@@ -19,11 +19,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
-from subordinates.config import settings
+from openvassal.config import settings
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Subordinates Setup", version="0.1.0")
+app = FastAPI(title="OpenVassal", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,7 +39,7 @@ class EnvConfig(BaseModel):
     anthropic_api_key: str = ""
     gemini_api_key: str = ""
     default_model: str = "gpt-4o"
-    database_path: str = "./data/subordinates.db"
+    database_path: str = "./data/openvassal.db"
     log_level: str = "INFO"
 
 
@@ -140,9 +140,9 @@ _data_store = None
 def _get_steward():
     global _steward_agent, _data_store
     if _steward_agent is None:
-        from subordinates.agents.registry import AgentRegistry
-        from subordinates.agents.steward import build_steward
-        from subordinates.data.store import DataStore
+        from openvassal.agents.registry import AgentRegistry
+        from openvassal.agents.steward import build_steward
+        from openvassal.data.store import DataStore
 
         _data_store = DataStore()
         registry = AgentRegistry(data_store=_data_store)
@@ -155,7 +155,7 @@ def _get_steward():
 def _get_data_store():
     global _data_store
     if _data_store is None:
-        from subordinates.data.store import DataStore
+        from openvassal.data.store import DataStore
         _data_store = DataStore()
     return _data_store
 
@@ -233,7 +233,7 @@ async def get_env():
         anthropic_api_key=env.get("ANTHROPIC_API_KEY", ""),
         gemini_api_key=env.get("GEMINI_API_KEY", ""),
         default_model=env.get("DEFAULT_MODEL", "gpt-4o"),
-        database_path=env.get("DATABASE_PATH", "./data/subordinates.db"),
+        database_path=env.get("DATABASE_PATH", "./data/openvassal.db"),
         log_level=env.get("LOG_LEVEL", "INFO"),
     )
 
@@ -301,7 +301,7 @@ async def get_available_models():
 @app.get("/api/plans")
 async def get_plans():
     """Return available plan tiers."""
-    from subordinates.plans.manager import PLAN_CATALOG
+    from openvassal.plans.manager import PLAN_CATALOG
     return {
         "plans": {
             name: {

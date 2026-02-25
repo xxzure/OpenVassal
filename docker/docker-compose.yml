@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  subordinates:
+  openvassal:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -11,6 +11,6 @@ services:
       # Mount .env for API keys
       - ../.env:/app/.env:ro
     environment:
-      - DATABASE_PATH=/app/data/subordinates.db
+      - DATABASE_PATH=/app/data/openvassal.db
     stdin_open: true
     tty: true

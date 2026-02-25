@@ -1,62 +1,49 @@
-# Subordinates — AI Personal Assistant
+# OpenVassal — AI Personal Assistant
 
-A multi-agent AI personal assistant. A **Steward Agent** orchestrates pluggable
-sub-agents — each specialized in a domain (coding, daily work, finances, health,
-phone calls) — to manage your digital life.
+> A multi-agent AI personal assistant with a steward/sub-agent architecture.
+> Each agent is a plug-in that can use its own LLM. Break data barriers by
+> merging all your personal data into one unified store.
 
-## Quick start
+## Quick Start
 
 ```bash
-# 1. Clone & install
-git clone <repo-url> && cd subordinates
+git clone <repo-url> && cd openvassal
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-
-# 2. Configure
-cp .env.example .env          # fill in your API keys
-
-# 3. Run
-subordinates                   # starts the interactive CLI
+cp .env.example .env          # add your API key(s)
+openvassal --setup             # launch the config UI
+openvassal                     # starts the interactive CLI
 ```
 
 ## Architecture
 
 ```
-User ──▶ Steward Agent ──┬──▶ Coding Agent
-                         ├──▶ Daily Work Agent
-                         ├──▶ Financial Agent   (future)
-                         ├──▶ Health Agent       (future)
-                         └──▶ Telephone Agent    (future)
-                              │
-                         Data Layer (SQLite + connectors)
+You ──▶ Steward Agent ──┬──▶ Coding Agent
+                        ├──▶ Daily Work Agent
+                        └──▶ … (plug-in more)
+                             │
+                        SQLite (unified data store)
 ```
 
-- **Plugin-based**: drop a new agent module in `subordinates/agents/` and register
-  it in `agents.yaml` — it's automatically available.
-- **Multi-LLM**: each agent can use a different model (OpenAI, Anthropic, Gemini, …)
-  via [LiteLLM](https://docs.litellm.ai/docs/providers).
-- **Insurance-style plans**: base subscription + per-agent add-ons.
+## Key Features
 
-## Project structure
+- **Multi-LLM**: each agent picks its own model (OpenAI / Anthropic / Gemini)
+- **Plugin-based**: drop a new agent module in `openvassal/agents/` and register
+  it in `agents.yaml` — done
+- **Insurance-style plans**: base subscription + per-agent add-ons
+- **Local-first**: SQLite database, runs anywhere
+- **Web UI**: config dashboard + chat interface at `http://127.0.0.1:8585`
+
+## Project Layout
 
 ```
-subordinates/
-├── subordinates/
-│   ├── agents/          # pluggable agent modules
-│   │   ├── base.py      # BaseAgent interface
-│   │   ├── registry.py  # auto-discovery & registration
-│   │   ├── steward.py   # orchestrator
-│   │   ├── coding.py    # coding sub-agent
-│   │   └── daily_work.py
-│   ├── data/            # unified data layer
-│   ├── plans/           # cost / plan management
-│   ├── config.py        # settings
-│   └── main.py          # CLI entry point
-├── tests/
-├── agents.yaml          # agent registry config
-├── pyproject.toml
-└── .env.example
+openvassal/             ← Python package
+├── agents/             ← plug-in sub-agents
+├── data/               ← unified data store & connectors
+├── plans/              ← cost / subscription logic
+├── web/                ← FastAPI server + chat & config UI
+└── main.py             ← CLI entry point
+docker/                 ← Dockerfile & Compose
+tests/                  ← pytest unit tests
+agents.yaml             ← agent registry
 ```
-
-## License
-
-MIT

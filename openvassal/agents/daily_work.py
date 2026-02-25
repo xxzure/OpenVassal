@@ -10,8 +10,8 @@ from datetime import datetime
 
 from agents import Agent, function_tool
 
-from subordinates.agents.base import BaseAgent
-from subordinates.models import DataCategory, DataRecord
+from openvassal.agents.base import BaseAgent
+from openvassal.models import DataCategory, DataRecord
 
 
 class DailyWorkAgent(BaseAgent):

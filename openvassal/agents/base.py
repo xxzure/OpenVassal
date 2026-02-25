@@ -14,8 +14,8 @@ from typing import Any
 
 from agents import Agent
 
-from subordinates.config import settings
-from subordinates.data.store import DataStore
+from openvassal.config import settings
+from openvassal.data.store import DataStore
 
 
 class BaseAgent(ABC):

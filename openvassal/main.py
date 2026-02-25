@@ -1,4 +1,4 @@
-"""CLI entry point — interactive personal assistant."""
+"""CLI entry point — OpenVassal interactive personal assistant."""
 
 from __future__ import annotations
 
@@ -15,13 +15,13 @@ from rich.prompt import Prompt
 
 from agents import Runner
 
-from subordinates.agents.registry import AgentRegistry
-from subordinates.agents.steward import build_steward
-from subordinates.config import settings
-from subordinates.plans.manager import PlanManager
+from openvassal.agents.registry import AgentRegistry
+from openvassal.agents.steward import build_steward
+from openvassal.config import settings
+from openvassal.plans.manager import PlanManager
 
 console = Console()
-logger = logging.getLogger("subordinates")
+logger = logging.getLogger("openvassal")
 
 
 def _setup_logging() -> None:
@@ -36,7 +36,7 @@ def _print_banner(registry: AgentRegistry, plan_mgr: PlanManager) -> None:
     agents = ", ".join(registry.agent_names) or "(none)"
     console.print(
         Panel.fit(
-            f"[bold cyan]Subordinates[/] — AI Personal Assistant\n\n"
+            f"[bold cyan]OpenVassal[/] — AI Personal Assistant\n\n"
             f"[dim]Model:[/]  {settings.default_model}\n"
             f"[dim]Agents:[/] {agents}\n"
             f"[dim]Plan:[/]   {plan_mgr.subscription.base_plan} "
@@ -110,7 +110,7 @@ async def _run_loop() -> None:
 
 def cli() -> None:
     """Entry point registered in pyproject.toml."""
-    parser = argparse.ArgumentParser(description="Subordinates — AI Personal Assistant")
+    parser = argparse.ArgumentParser(description="OpenVassal — AI Personal Assistant")
     parser.add_argument(
         "--setup", action="store_true",
         help="Launch the web-based configuration UI",
@@ -124,12 +124,12 @@ def cli() -> None:
     _setup_logging()
 
     if args.setup:
-        from subordinates.web.server import start_server
+        from openvassal.web.server import start_server
 
         url = f"http://127.0.0.1:{args.port}"
         console.print(
             Panel.fit(
-                f"[bold cyan]Subordinates Setup[/]\n\n"
+                f"[bold cyan]OpenVassal Setup[/]\n\n"
                 f"Open [link={url}]{url}[/link] in your browser.\n"
                 f"Press [bold]Ctrl+C[/] to stop.",
                 border_style="cyan",

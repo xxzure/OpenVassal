@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVassal — Chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-input: rgba(15, 23, 42, 0.8);
+            --bg-user-msg: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(139, 92, 246, 0.1));
+            --bg-agent-msg: rgba(30, 41, 59, 0.6);
+            --border: rgba(56, 189, 248, 0.12);
+            --border-hover: rgba(56, 189, 248, 0.3);
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+            --accent-dark: #0ea5e9;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 25% 25%, rgba(56, 189, 248, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.02) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        /* ── Layout ───────────────────────────────── */
+        .layout {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* ── Sidebar ──────────────────────────────── */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header .logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .sidebar-header span {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .nav-links {
+            padding: 12px;
+        }
+
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            margin-bottom: 4px;
+        }
+
+        .nav-links a:hover {
+            background: var(--accent-glow);
+            color: var(--text-primary);
+        }
+
+        .nav-links a.active {
+            background: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+        }
+
+        .nav-links a svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* ── Work Results panel ────────────────────── */
+        .results-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .results-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--accent-glow);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            color: var(--accent);
+        }
+
+        .result-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            transition: var(--transition);
+            cursor: default;
+        }
+
+        .result-item:hover {
+            border-color: var(--border-hover);
+        }
+
+        .result-item .ri-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .result-item .ri-title {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        .result-item .ri-cat {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .ri-cat.daily {
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+        }
+
+        .ri-cat.health {
+            background: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+        }
+
+        .ri-cat.financial {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        .ri-cat.chat {
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+        }
+
+        .ri-cat.contacts {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+        }
+
+        .ri-cat.files {
+            background: rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
+        }
+
+        .result-item .ri-content {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .result-item .ri-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ── Chat area ────────────────────────────── */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .chat-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(17, 24, 39, 0.5);
+            backdrop-filter: blur(12px);
+        }
+
+        .chat-header .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .chat-header .info h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chat-header .info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .chat-header .status-indicator {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* ── Messages ─────────────────────────────── */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.3);
+            border-radius: 3px;
+        }
+
+        .msg {
+            max-width: 72%;
+            animation: msgIn 0.3s ease;
+        }
+
+        @keyframes msgIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .msg.user {
+            align-self: flex-end;
+        }
+
+        .msg.agent {
+            align-self: flex-start;
+        }
+
+        .msg .agent-label {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .msg.user .agent-label {
+            color: var(--accent);
+            justify-content: flex-end;
+        }
+
+        .msg.agent .agent-label {
+            color: #a78bfa;
+        }
+
+        .msg .agent-label .agent-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .msg .bubble {
+            padding: 14px 18px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .msg.user .bubble {
+            background: var(--bg-user-msg);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg.agent .bubble {
+            background: var(--bg-agent-msg);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Markdown inside bubbles */
+        .bubble p {
+            margin-bottom: 8px;
+        }
+
+        .bubble p:last-child {
+            margin-bottom: 0;
+        }
+
+        .bubble code {
+            background: rgba(56, 189, 248, 0.1);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--accent);
+        }
+
+        .bubble pre {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .bubble pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+
+        .bubble ul,
+        .bubble ol {
+            padding-left: 20px;
+            margin: 6px 0;
+        }
+
+        .bubble li {
+            margin-bottom: 4px;
+        }
+
+        .bubble strong {
+            color: var(--text-primary);
+        }
+
+        .bubble h1,
+        .bubble h2,
+        .bubble h3 {
+            font-size: 15px;
+            margin: 10px 0 6px;
+            color: var(--text-primary);
+        }
+
+        /* ── Typing indicator ─────────────────────── */
+        .typing {
+            display: none;
+            align-self: flex-start;
+            padding: 14px 18px;
+            background: var(--bg-agent-msg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing.show {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .typing .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: typingDot 1.4s ease-in-out infinite;
+        }
+
+        .typing .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingDot {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+
+            30% {
+                transform: translateY(-6px);
+                opacity: 1;
+            }
+        }
+
+        /* ── Input area ───────────────────────────── */
+        .input-area {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            background: rgba(17, 24, 39, 0.5);
+            backdrop-filter: blur(12px);
+        }
+
+        .input-wrap {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .input-wrap textarea {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            min-height: 46px;
+            max-height: 140px;
+            transition: var(--transition);
+            line-height: 1.5;
+        }
+
+        .input-wrap textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .input-wrap textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border: none;
+            color: var(--bg-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(56, 189, 248, 0.3);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .send-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* ── Welcome ──────────────────────────────── */
+        .welcome {
+            text-align: center;
+            padding: 60px 20px;
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .welcome .big-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .welcome h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            max-width: 420px;
+            margin: 0 auto 24px;
+            line-height: 1.6;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            padding: 10px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quick-action:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* ── Responsive ───────────────────────────── */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .msg {
+                max-width: 90%;
+            }
+        }
+
+        /* ── Scrollbar for results ─────────────────── */
+        .results-section::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .results-section::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .results-section::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.2);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="layout">
+        <!-- ── Sidebar ──────────────────────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">⚡</div>
+                <div>
+                    <h1>OpenVassal</h1>
+                    <span>Personal AI</span>
+                </div>
+            </div>
+
+            <div class="nav-links">
+                <a href="/chat" class="active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Chat
+                </a>
+                <a href="/">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Settings
+                </a>
+            </div>
+
+            <!-- Work Results -->
+            <div class="results-section">
+                <div class="results-title">📊 Work Results</div>
+                <div id="stats-row" class="stats-row"></div>
+                <div id="results-list"></div>
+            </div>
+
+            <div class="sidebar-footer">
+                v0.1.0 &middot; <span class="status-dot"
+                    style="display:inline-block;width:6px;height:6px;vertical-align:middle;"></span> Connected
+            </div>
+        </aside>
+
+        <!-- ── Chat Area ────────────────────────────── -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <div class="avatar">🤖</div>
+                <div class="info">
+                    <h2>Steward</h2>
+                    <p>Your personal AI orchestrator</p>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    Online
+                </div>
+            </div>
+
+            <div class="messages" id="messages">
+                <div class="welcome" id="welcome">
+                    <div class="big-icon">⚡</div>
+                    <h3>Hello! I'm your Steward.</h3>
+                    <p>I coordinate your AI agents to help with coding, daily tasks, and more. Just tell me what you
+                        need.</p>
+                    <div class="quick-actions">
+                        <div class="quick-action" onclick="sendQuick('Help me write a Python function')">💻 Write code
+                        </div>
+                        <div class="quick-action" onclick="sendQuick('Add a task: Review pull requests')">📋 Add a task
+                        </div>
+                        <div class="quick-action" onclick="sendQuick('List my current tasks')">📝 List tasks</div>
+                        <div class="quick-action" onclick="sendQuick('What agents are available?')">🤖 My agents</div>
+                    </div>
+                </div>
+
+                <div class="typing" id="typing">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrap">
+                    <textarea id="input" placeholder="Message the Steward..." rows="1" onkeydown="handleKey(event)"
+                        oninput="autoResize(this)"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m22 2-7 20-4-9-9-4z" />
+                            <path d="m22 2-10 10" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+        let chatHistory = [];
+
+        // ── Agent icons ──────────────────────────────
+        function agentIcon(name) {
+            const map = {
+                'Steward': '🤖',
+                'Coding Agent': '💻',
+                'Daily Work Agent': '📋',
+                'Telephone Agent': '📞',
+                'Financial Agent': '💰',
+                'Health Agent': '🏥',
+                'System': '⚠️',
+                'You': '👤',
+            };
+            return map[name] || '🤖';
+        }
+
+        function agentGradient(name) {
+            const map = {
+                'Steward': 'linear-gradient(135deg, #38bdf8, #8b5cf6)',
+                'Coding Agent': 'linear-gradient(135deg, #38bdf8, #818cf8)',
+                'Daily Work Agent': 'linear-gradient(135deg, #34d399, #38bdf8)',
+                'System': 'linear-gradient(135deg, #f87171, #fb923c)',
+            };
+            return map[name] || 'linear-gradient(135deg, #64748b, #94a3b8)';
+        }
+
+        // ── Add message to UI ────────────────────────
+        function addMessage(content, sender, agentName) {
+            const welcome = document.getElementById('welcome');
+            if (welcome) welcome.style.display = 'none';
+
+            const messages = document.getElementById('messages');
+            const typing = document.getElementById('typing');
+
+            const div = document.createElement('div');
+            div.className = `msg ${sender}`;
+
+            const label = sender === 'user' ? 'You' : agentName;
+            const icon = agentIcon(label);
+            const gradient = sender === 'agent' ? agentGradient(agentName) : '';
+
+            // Render markdown for agent messages
+            const rendered = sender === 'agent' ? marked.parse(content) : escapeHtml(content);
+
+            div.innerHTML = `
+            <div class="agent-label">
+                ${sender === 'agent' ? `<span class="agent-icon" style="background: ${gradient}">${icon}</span>` : ''}
+                ${label}
+                ${sender === 'user' ? `<span class="agent-icon" style="background: linear-gradient(135deg, #38bdf8, #0ea5e9)">👤</span>` : ''}
+            </div>
+            <div class="bubble">${rendered}</div>
+        `;
+
+            messages.insertBefore(div, typing);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ── Send message ─────────────────────────────
+        async function sendMessage() {
+            const input = document.getElementById('input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            autoResize(input);
+            addMessage(text, 'user', 'You');
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+
+            const typing = document.getElementById('typing');
+            typing.classList.add('show');
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+
+            try {
+                const res = await fetch(`${API}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text }),
+                });
+                const data = await res.json();
+                typing.classList.remove('show');
+                addMessage(data.response, 'agent', data.agent || 'Steward');
+
+                // Refresh work results after each interaction
+                loadResults();
+            } catch (e) {
+                typing.classList.remove('show');
+                addMessage('⚠️ Failed to reach the server. Is it running?', 'agent', 'System');
+            } finally {
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+
+        function sendQuick(text) {
+            document.getElementById('input').value = text;
+            sendMessage();
+        }
+
+        // ── Input handlers ───────────────────────────
+        function handleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+        }
+
+        // ── Load work results ────────────────────────
+        async function loadResults() {
+            try {
+                const res = await fetch(`${API}/api/data/recent`);
+                const data = await res.json();
+
+                // Stats
+                const statsRow = document.getElementById('stats-row');
+                statsRow.innerHTML = '';
+                for (const [cat, count] of Object.entries(data.stats || {})) {
+                    const badge = document.createElement('span');
+                    badge.className = 'stat-badge';
+                    badge.textContent = `${cat}: ${count}`;
+                    statsRow.appendChild(badge);
+                }
+
+                // Records
+                const list = document.getElementById('results-list');
+                list.innerHTML = '';
+                for (const r of data.records || []) {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+
+                    const type = r.metadata?.type || '';
+                    const statusIcon = type === 'task'
+                        ? (r.metadata?.status === 'done' ? '✅' : '⬜')
+                        : type === 'note' ? '📝'
+                            : type === 'code_snippet' ? '💻'
+                                : '📄';
+
+                    const timeStr = new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    item.innerHTML = `
+                    <div class="ri-header">
+                        <div class="ri-title">${statusIcon} ${escapeHtml(r.title)}</div>
+                        <span class="ri-cat ${r.category}">${r.category}</span>
+                    </div>
+                    <div class="ri-content">${escapeHtml(r.content)}</div>
+                    <div class="ri-time">${timeStr} · ${r.source}</div>
+                `;
+                    list.appendChild(item);
+                }
+
+                if ((data.records || []).length === 0) {
+                    list.innerHTML = '<p style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 20px 0;">No work results yet. Start chatting to create tasks, notes, and code snippets.</p>';
+                }
+            } catch (e) {
+                console.error('Failed to load results', e);
+            }
+        }
+
+        // ── Init ─────────────────────────────────────
+        document.getElementById('input').focus();
+        loadResults();
+    </script>
+
+</body>
+
+</html>

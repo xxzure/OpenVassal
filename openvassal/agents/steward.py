@@ -12,11 +12,11 @@ from typing import TYPE_CHECKING
 
 from agents import Agent, handoff
 
-from subordinates.agents.base import BaseAgent
-from subordinates.config import settings
+from openvassal.agents.base import BaseAgent
+from openvassal.config import settings
 
 if TYPE_CHECKING:
-    from subordinates.agents.registry import AgentRegistry
+    from openvassal.agents.registry import AgentRegistry
 
 logger = logging.getLogger(__name__)
 

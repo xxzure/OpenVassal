@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # ── Paths ─────────────────────────────────────────────
     project_root: Path = Field(default_factory=_project_root)
     database_path: str = Field(
-        default="./data/subordinates.db",
+        default="./data/openvassal.db",
         description="SQLite database path (relative to project root)",
     )
     agents_config_path: str = Field(

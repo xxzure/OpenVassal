@@ -3,8 +3,8 @@
 import tempfile
 from pathlib import Path
 
-from subordinates.data.store import DataStore
-from subordinates.models import DataCategory, DataRecord
+from openvassal.data.store import DataStore
+from openvassal.models import DataCategory, DataRecord
 
 
 def _make_store() -> DataStore:

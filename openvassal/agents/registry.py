@@ -14,10 +14,10 @@ from typing import Any
 
 import yaml
 
-from subordinates.agents.base import BaseAgent
-from subordinates.config import settings
-from subordinates.data.store import DataStore
-from subordinates.models import AgentConfig
+from openvassal.agents.base import BaseAgent
+from openvassal.config import settings
+from openvassal.data.store import DataStore
+from openvassal.models import AgentConfig
 
 logger = logging.getLogger(__name__)
 

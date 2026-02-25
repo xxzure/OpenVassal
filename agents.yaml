@@ -6,7 +6,7 @@
 
 agents:
   - name: coding
-    module: subordinates.agents.coding
+    module: openvassal.agents.coding
     class: CodingAgent
     description: "Code generation, review, debugging, and technical assistance"
     model: "gpt-4o"                         # override per agent
@@ -14,7 +14,7 @@ agents:
     plan_tier: coding
 
   - name: daily_work
-    module: subordinates.agents.daily_work
+    module: openvassal.agents.daily_work
     class: DailyWorkAgent
     description: "Calendar, tasks, email triage, and daily productivity"
     model: "gpt-4o-mini"
@@ -23,7 +23,7 @@ agents:
 
   # ── Future agents (disabled until implemented) ──────────
   # - name: telephone
-  #   module: subordinates.agents.telephone
+  #   module: openvassal.agents.telephone
   #   class: TelephoneAgent
   #   description: "Call summaries, contact management, reminders"
   #   model: "gpt-4o-mini"
@@ -31,7 +31,7 @@ agents:
   #   plan_tier: telephone
   #
   # - name: financial
-  #   module: subordinates.agents.financial
+  #   module: openvassal.agents.financial
   #   class: FinancialAgent
   #   description: "Expense tracking, budgets, investment summaries"
   #   model: "litellm/anthropic/claude-3-5-sonnet-20240620"
@@ -39,7 +39,7 @@ agents:
   #   plan_tier: financial
   #
   # - name: health
-  #   module: subordinates.agents.health
+  #   module: openvassal.agents.health
   #   class: HealthAgent
   #   description: "Health metrics, medication reminders, fitness"
   #   model: "litellm/gemini/gemini-2.0-flash"

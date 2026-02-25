@@ -1,7 +1,7 @@
 [project]
-name = "subordinates"
+name = "openvassal"
 version = "0.1.0"
-description = "AI Personal Assistant — Multi-Agent System with a Steward orchestrator and pluggable sub-agents"
+description = "OpenVassal — AI personal assistant with multi-agent architecture"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -24,10 +24,10 @@ dev = [
 ]
 
 [project.scripts]
-subordinates = "subordinates.main:cli"
+openvassal = "openvassal.main:cli"
 
 [tool.setuptools.packages.find]
-include = ["subordinates*"]
+include = ["openvassal*"]
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

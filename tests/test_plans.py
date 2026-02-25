@@ -1,7 +1,7 @@
 """Tests for the plan manager."""
 
-from subordinates.models import UserSubscription
-from subordinates.plans.manager import PLAN_CATALOG, PlanManager
+from openvassal.models import UserSubscription
+from openvassal.plans.manager import PLAN_CATALOG, PlanManager
 
 
 def test_free_plan_includes_steward():

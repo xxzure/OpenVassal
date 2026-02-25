@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVassal — Setup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── Reset & Root ─────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(22, 32, 52, 0.85);
+            --bg-input: rgba(15, 23, 42, 0.8);
+            --border: rgba(56, 189, 248, 0.12);
+            --border-hover: rgba(56, 189, 248, 0.3);
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+            --accent-dark: #0ea5e9;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 1px rgba(56, 189, 248, 0.1);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Background effects ───────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(56, 189, 248, 0.04) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+            z-index: -1;
+            animation: bgPulse 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgPulse {
+            0% {
+                transform: translateX(0) translateY(0);
+            }
+
+            100% {
+                transform: translateX(-3%) translateY(-2%);
+            }
+        }
+
+        /* ── Layout ───────────────────────────────────── */
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── Sidebar ──────────────────────────────────── */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 8px 24px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .sidebar-brand .logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .sidebar-brand h1 {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .sidebar-brand span {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .nav-items {
+            list-style: none;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: var(--accent-glow);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+        }
+
+        .nav-item svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        /* ── Main ─────────────────────────────────────── */
+        .main {
+            flex: 1;
+            margin-left: 240px;
+            padding: 32px 40px;
+            max-width: 1100px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        /* ── Section ──────────────────────────────────── */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Card ─────────────────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-card);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .badge {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* ── Form elements ────────────────────────────── */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        label .hint {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-left: 4px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group .toggle-vis {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        .input-group .toggle-vis:hover {
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* ── Toggle switch ────────────────────────────── */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle .slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(100, 116, 139, 0.3);
+            border-radius: 24px;
+            transition: var(--transition);
+        }
+
+        .toggle .slider::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 3px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .toggle input:checked+.slider {
+            background: var(--accent);
+        }
+
+        .toggle input:checked+.slider::after {
+            transform: translateX(20px);
+            background: var(--bg-primary);
+        }
+
+        /* ── Agent card ───────────────────────────────── */
+        .agent-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        .agent-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .agent-card.disabled {
+            opacity: 0.5;
+        }
+
+        .agent-card .agent-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .agent-card .agent-name {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .agent-card .agent-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .agent-card .agent-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            line-height: 1.5;
+        }
+
+        /* ── Plan cards ───────────────────────────────── */
+        .plan-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .plan-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+            transition: var(--transition);
+            cursor: default;
+        }
+
+        .plan-card .plan-name {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: capitalize;
+            margin-bottom: 4px;
+        }
+
+        .plan-card .plan-price {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 8px 0;
+        }
+
+        .plan-card .plan-price span {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .plan-card .plan-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ── Buttons ──────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            outline: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: var(--bg-primary);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(56, 189, 248, 0.08);
+            color: var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(56, 189, 248, 0.15);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        /* ── Toast ────────────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 9999;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            color: var(--success);
+        }
+
+        .toast.error {
+            background: rgba(248, 113, 113, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: var(--danger);
+        }
+
+        /* ── Status dot ───────────────────────────────── */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.active {
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+        }
+
+        .status-dot.inactive {
+            background: var(--text-muted);
+        }
+
+        /* ── Responsive ───────────────────────────────── */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .plan-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="layout">
+        <!-- ── Sidebar ──────────────────────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="logo">⚡</div>
+                <div>
+                    <h1>OpenVassal</h1>
+                    <span>AI Setup</span>
+                </div>
+            </div>
+
+            <ul class="nav-items">
+                <li class="nav-item" onclick="window.location.href='/chat'" style="cursor:pointer;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    Chat
+                </li>
+                <li class="nav-item active" data-section="api-keys" onclick="switchSection(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
+                    </svg>
+                    API Keys
+                </li>
+                <li class="nav-item" data-section="models" onclick="switchSection(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2 2 7l10 5 10-5-10-5z" />
+                        <path d="m2 17 10 5 10-5" />
+                        <path d="m2 12 10 5 10-5" />
+                    </svg>
+                    Models
+                </li>
+                <li class="nav-item" data-section="agents" onclick="switchSection(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    Agents
+                </li>
+                <li class="nav-item" data-section="plans" onclick="switchSection(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect width="20" height="14" x="2" y="5" rx="2" />
+                        <path d="M2 10h20" />
+                    </svg>
+                    Plans
+                </li>
+                <li class="nav-item" data-section="system" onclick="switchSection(this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    System
+                </li>
+            </ul>
+
+            <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: auto;">
+                <div style="font-size: 11px; color: var(--text-muted); padding: 0 8px;">
+                    v0.1.0 &middot; <span class="status-dot active"></span> Connected
+                </div>
+            </div>
+        </aside>
+
+        <!-- ── Main Content ────────────────────────── -->
+        <main class="main">
+
+            <!-- ═══ API Keys ═══════════════════════════ -->
+            <div id="section-api-keys" class="section active">
+                <div class="page-header">
+                    <h2>API Keys</h2>
+                    <p>Configure your LLM provider credentials. Keys are stored locally in your .env file.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        OpenAI
+                        <span class="badge">Required</span>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key <span class="hint">from platform.openai.com</span></label>
+                        <div class="input-group">
+                            <input type="password" id="openai_api_key" placeholder="sk-...">
+                            <button class="toggle-vis" onclick="toggleVisibility('openai_api_key')">Show</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-title">
+                            Anthropic
+                            <span class="badge"
+                                style="background: rgba(139, 92, 246, 0.15); color: #a78bfa; border-color: rgba(139, 92, 246, 0.2);">Optional</span>
+                        </div>
+                        <div class="form-group">
+                            <label>API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="anthropic_api_key" placeholder="sk-ant-...">
+                                <button class="toggle-vis" onclick="toggleVisibility('anthropic_api_key')">Show</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">
+                            Google Gemini
+                            <span class="badge"
+                                style="background: rgba(139, 92, 246, 0.15); color: #a78bfa; border-color: rgba(139, 92, 246, 0.2);">Optional</span>
+                        </div>
+                        <div class="form-group">
+                            <label>API Key</label>
+                            <div class="input-group">
+                                <input type="password" id="gemini_api_key" placeholder="AI...">
+                                <button class="toggle-vis" onclick="toggleVisibility('gemini_api_key')">Show</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveEnv()">💾 Save API Keys</button>
+                </div>
+            </div>
+
+            <!-- ═══ Models ═════════════════════════════ -->
+            <div id="section-models" class="section">
+                <div class="page-header">
+                    <h2>Default Model</h2>
+                    <p>Choose the primary LLM model. Agents without a specific model will use this one.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Primary Model</div>
+                    <div class="form-group">
+                        <label>Default LLM <span class="hint">used by the Steward agent</span></label>
+                        <select id="default_model"></select>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                        💡 Each agent can override this in the Agents tab. Non-OpenAI models use the
+                        <code
+                            style="color: var(--accent); background: var(--accent-glow); padding: 1px 5px; border-radius: 4px;">litellm/</code>
+                        prefix.
+                    </p>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveEnv()">💾 Save Model</button>
+                </div>
+            </div>
+
+            <!-- ═══ Agents ═════════════════════════════ -->
+            <div id="section-agents" class="section">
+                <div class="page-header">
+                    <h2>Agents</h2>
+                    <p>Enable, disable, and configure sub-agents. Each agent can use a different LLM model.</p>
+                </div>
+
+                <div id="agents-container" class="card-grid">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveAgents()">💾 Save Agents</button>
+                </div>
+            </div>
+
+            <!-- ═══ Plans ══════════════════════════════ -->
+            <div id="section-plans" class="section">
+                <div class="page-header">
+                    <h2>Plans & Pricing</h2>
+                    <p>Insurance-style subscriptions — base plan + per-agent add-ons.</p>
+                </div>
+
+                <div id="plans-container" class="plan-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- ═══ System ═════════════════════════════ -->
+            <div id="section-system" class="section">
+                <div class="page-header">
+                    <h2>System Settings</h2>
+                    <p>Database path, logging, and other system configuration.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Database</div>
+                    <div class="form-group">
+                        <label>SQLite Database Path</label>
+                        <input type="text" id="database_path" placeholder="./data/subordinates.db">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Logging</div>
+                    <div class="form-group">
+                        <label>Log Level</label>
+                        <select id="log_level">
+                            <option value="DEBUG">DEBUG</option>
+                            <option value="INFO">INFO</option>
+                            <option value="WARNING">WARNING</option>
+                            <option value="ERROR">ERROR</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveEnv()">💾 Save System Settings</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ── Toast ──────────────────────────────────── -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const API = '';  // same origin
+
+        // ── Navigation ───────────────────────────────
+        function switchSection(el) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+            const sectionId = 'section-' + el.dataset.section;
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        // ── Toast ────────────────────────────────────
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // ── Toggle password visibility ───────────────
+        function toggleVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const btn = input.nextElementSibling;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = 'Hide';
+            } else {
+                input.type = 'password';
+                btn.textContent = 'Show';
+            }
+        }
+
+        // ── Agent icon by name ───────────────────────
+        function agentIcon(name) {
+            const icons = {
+                coding: '💻',
+                daily_work: '📋',
+                telephone: '📞',
+                financial: '💰',
+                health: '🏥',
+            };
+            return icons[name] || '🤖';
+        }
+
+        function agentColor(name) {
+            const colors = {
+                coding: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+                daily_work: 'linear-gradient(135deg, #34d399, #38bdf8)',
+                telephone: 'linear-gradient(135deg, #fbbf24, #f97316)',
+                financial: 'linear-gradient(135deg, #a78bfa, #ec4899)',
+                health: 'linear-gradient(135deg, #f87171, #fb923c)',
+            };
+            return colors[name] || 'linear-gradient(135deg, #64748b, #94a3b8)';
+        }
+
+        // ── Load data ────────────────────────────────
+        let availableModels = [];
+        let currentAgents = [];
+
+        async function loadEnv() {
+            try {
+                const res = await fetch(`${API}/api/env`);
+                const data = await res.json();
+                document.getElementById('openai_api_key').value = data.openai_api_key || '';
+                document.getElementById('anthropic_api_key').value = data.anthropic_api_key || '';
+                document.getElementById('gemini_api_key').value = data.gemini_api_key || '';
+                document.getElementById('database_path').value = data.database_path || './data/subordinates.db';
+                document.getElementById('log_level').value = data.log_level || 'INFO';
+
+                // Set default model after models are loaded
+                const modelSelect = document.getElementById('default_model');
+                if (modelSelect.options.length > 0) {
+                    modelSelect.value = data.default_model || 'gpt-4o';
+                } else {
+                    modelSelect.dataset.pending = data.default_model || 'gpt-4o';
+                }
+            } catch (e) {
+                showToast('Failed to load config', 'error');
+            }
+        }
+
+        async function loadModels() {
+            try {
+                const res = await fetch(`${API}/api/models`);
+                const data = await res.json();
+                availableModels = data.models;
+
+                const select = document.getElementById('default_model');
+                select.innerHTML = '';
+                let currentProvider = '';
+                for (const m of availableModels) {
+                    if (m.provider !== currentProvider) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = m.provider;
+                        select.appendChild(optgroup);
+                        currentProvider = m.provider;
+                    }
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = `${m.label}`;
+                    select.lastElementChild.appendChild(opt);
+                }
+                // Also add a custom option
+                const customGroup = document.createElement('optgroup');
+                customGroup.label = 'Custom';
+                const customOpt = document.createElement('option');
+                customOpt.value = '__custom__';
+                customOpt.textContent = 'Enter custom model…';
+                customGroup.appendChild(customOpt);
+                select.appendChild(customGroup);
+
+                // Apply pending value
+                if (select.dataset.pending) {
+                    select.value = select.dataset.pending;
+                    delete select.dataset.pending;
+                }
+            } catch (e) {
+                console.error('Failed to load models', e);
+            }
+        }
+
+        async function loadAgents() {
+            try {
+                const res = await fetch(`${API}/api/agents`);
+                const data = await res.json();
+                currentAgents = data.agents || [];
+                renderAgents();
+            } catch (e) {
+                showToast('Failed to load agents', 'error');
+            }
+        }
+
+        function renderAgents() {
+            const container = document.getElementById('agents-container');
+            container.innerHTML = '';
+
+            for (let i = 0; i < currentAgents.length; i++) {
+                const a = currentAgents[i];
+                const card = document.createElement('div');
+                card.className = `agent-card ${a.enabled ? '' : 'disabled'}`;
+                card.innerHTML = `
+                <div class="agent-header">
+                    <div class="agent-name">
+                        <div class="agent-icon" style="background: ${agentColor(a.name)}">${agentIcon(a.name)}</div>
+                        ${a.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" ${a.enabled ? 'checked' : ''} onchange="toggleAgent(${i}, this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="agent-desc">${a.description || 'No description'}</div>
+                <div class="form-group">
+                    <label>Model <span class="hint">override</span></label>
+                    <select onchange="updateAgentModel(${i}, this.value)" id="agent-model-${i}">
+                        ${buildModelOptions(a.model)}
+                    </select>
+                </div>
+            `;
+                container.appendChild(card);
+            }
+        }
+
+        function buildModelOptions(currentModel) {
+            let html = '';
+            let currentProvider = '';
+            for (const m of availableModels) {
+                if (m.provider !== currentProvider) {
+                    if (currentProvider) html += '</optgroup>';
+                    html += `<optgroup label="${m.provider}">`;
+                    currentProvider = m.provider;
+                }
+                html += `<option value="${m.id}" ${m.id === currentModel ? 'selected' : ''}>${m.label}</option>`;
+            }
+            if (currentProvider) html += '</optgroup>';
+
+            // If current model is not in list, add it
+            const inList = availableModels.some(m => m.id === currentModel);
+            if (currentModel && !inList) {
+                html += `<optgroup label="Current"><option value="${currentModel}" selected>${currentModel}</option></optgroup>`;
+            }
+
+            return html;
+        }
+
+        function toggleAgent(idx, enabled) {
+            currentAgents[idx].enabled = enabled;
+            renderAgents();
+        }
+
+        function updateAgentModel(idx, model) {
+            currentAgents[idx].model = model;
+        }
+
+        async function loadPlans() {
+            try {
+                const res = await fetch(`${API}/api/plans`);
+                const data = await res.json();
+                const container = document.getElementById('plans-container');
+                container.innerHTML = '';
+
+                for (const [key, plan] of Object.entries(data.plans)) {
+                    const card = document.createElement('div');
+                    card.className = 'plan-card';
+                    card.innerHTML = `
+                    <div class="plan-name">${plan.name}</div>
+                    <div class="plan-price">$${plan.monthly_cost.toFixed(2)} <span>/mo</span></div>
+                    <div class="plan-desc">${plan.description}</div>
+                `;
+                    container.appendChild(card);
+                }
+            } catch (e) {
+                console.error('Failed to load plans', e);
+            }
+        }
+
+        // ── Save ─────────────────────────────────────
+        async function saveEnv() {
+            const data = {
+                openai_api_key: document.getElementById('openai_api_key').value,
+                anthropic_api_key: document.getElementById('anthropic_api_key').value,
+                gemini_api_key: document.getElementById('gemini_api_key').value,
+                default_model: document.getElementById('default_model').value,
+                database_path: document.getElementById('database_path').value,
+                log_level: document.getElementById('log_level').value,
+            };
+            try {
+                const res = await fetch(`${API}/api/env`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                if (res.ok) {
+                    showToast('✅ Configuration saved successfully!');
+                } else {
+                    showToast('Failed to save config', 'error');
+                }
+            } catch (e) {
+                showToast('Failed to save config', 'error');
+            }
+        }
+
+        async function saveAgents() {
+            const agents = currentAgents.map(a => ({
+                name: a.name,
+                module: a.module,
+                class_name: a['class'] || a.class_name || '',
+                description: a.description || '',
+                model: a.model || '',
+                enabled: a.enabled,
+                plan_tier: a.plan_tier || '',
+            }));
+            try {
+                const res = await fetch(`${API}/api/agents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agents }),
+                });
+                if (res.ok) {
+                    showToast('✅ Agent configuration saved!');
+                } else {
+                    showToast('Failed to save agents', 'error');
+                }
+            } catch (e) {
+                showToast('Failed to save agents', 'error');
+            }
+        }
+
+        // ── Init ─────────────────────────────────────
+        async function init() {
+            await loadModels();
+            await loadEnv();
+            await loadAgents();
+            await loadPlans();
+        }
+
+        init();
+    </script>
+
+</body>
+
+</html>

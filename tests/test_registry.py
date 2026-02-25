@@ -5,9 +5,9 @@ from pathlib import Path
 
 import yaml
 
-from subordinates.agents.base import BaseAgent
-from subordinates.agents.registry import AgentRegistry
-from subordinates.data.store import DataStore
+from openvassal.agents.base import BaseAgent
+from openvassal.agents.registry import AgentRegistry
+from openvassal.data.store import DataStore
 
 
 def _make_store() -> DataStore:
@@ -25,7 +25,7 @@ def test_load_enabled_agents(tmp_path):
     config = [
         {
             "name": "coding",
-            "module": "subordinates.agents.coding",
+            "module": "openvassal.agents.coding",
             "class": "CodingAgent",
             "description": "Coding agent",
             "model": "gpt-4o",
@@ -34,7 +34,7 @@ def test_load_enabled_agents(tmp_path):
         },
         {
             "name": "daily_work",
-            "module": "subordinates.agents.daily_work",
+            "module": "openvassal.agents.daily_work",
             "class": "DailyWorkAgent",
             "description": "Daily work agent",
             "model": "gpt-4o-mini",
@@ -55,7 +55,7 @@ def test_disabled_agent_not_loaded(tmp_path):
     config = [
         {
             "name": "coding",
-            "module": "subordinates.agents.coding",
+            "module": "openvassal.agents.coding",
             "class": "CodingAgent",
             "enabled": False,
             "plan_tier": "coding",
@@ -75,7 +75,7 @@ def test_manual_register_and_unregister(tmp_path):
     registry.load()
 
     # Create a dummy agent
-    from subordinates.agents.coding import CodingAgent
+    from openvassal.agents.coding import CodingAgent
     agent = CodingAgent(data_store=_make_store())
     registry.register("my_custom_agent", agent)
     assert "my_custom_agent" in registry.agent_names

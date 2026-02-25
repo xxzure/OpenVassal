@@ -13,4 +13,4 @@ COPY . .
 RUN mkdir -p /app/data
 
 # Default command
-CMD ["subordinates"]
+CMD ["openvassal"]
