@@ -18,6 +18,7 @@ from agents import Runner
 from openvassal.agents.registry import AgentRegistry
 from openvassal.agents.steward import build_steward
 from openvassal.config import settings
+from openvassal.memory import MemoryManager
 from openvassal.plans.manager import PlanManager
 
 console = Console()
@@ -58,9 +59,18 @@ async def _run_loop() -> None:
     for name in registry.agent_names:
         plan_mgr.add_agent_plan(name)
 
-    steward = build_steward(registry)
+    # Initialize memory
+    memory_mgr = MemoryManager()
+    conv = memory_mgr.create_conversation("CLI Session")
+    session = memory_mgr.get_or_create_session(conv["id"])
+
+    steward = build_steward(registry, memory_manager=memory_mgr)
 
     _print_banner(registry, plan_mgr)
+
+    facts = memory_mgr.get_all_facts()
+    if facts:
+        console.print(f"[dim]Memory:[/] {len(facts)} facts remembered about you")
 
     while True:
         try:
@@ -72,7 +82,7 @@ async def _run_loop() -> None:
         if not user_input.strip():
             continue
 
-        # ── Slash commands ────────────────────────────────
+        # ── Slash commands ────────────────────────────
         cmd = user_input.strip().lower()
         if cmd in ("/quit", "/exit", "/q"):
             console.print("[dim]Goodbye![/]")
@@ -83,6 +93,7 @@ async def _run_loop() -> None:
                     "**Commands:**\n"
                     "- `/plan` — show subscription info\n"
                     "- `/agents` — list loaded agents\n"
+                    "- `/memory` — show remembered facts\n"
                     "- `/quit` — exit\n"
                 )
             )
@@ -94,11 +105,22 @@ async def _run_loop() -> None:
             for name, agent in registry.get_all().items():
                 console.print(f"  [cyan]{name}[/] — {agent.description}")
             continue
+        if cmd == "/memory":
+            facts = memory_mgr.get_all_facts()
+            if facts:
+                console.print(Panel(
+                    "\n".join(f"• {f['fact']}" for f in facts),
+                    title="🧠 What I Remember",
+                    border_style="magenta",
+                ))
+            else:
+                console.print("[dim]No facts remembered yet. Keep chatting![/]")
+            continue
 
-        # ── Run the Steward ───────────────────────────────
+        # ── Run the Steward ───────────────────────────
         with console.status("[bold cyan]Thinking…[/]"):
             try:
-                result = await Runner.run(steward, input=user_input)
+                result = await Runner.run(steward, input=user_input, session=session)
                 response = result.final_output
             except Exception as exc:
                 logger.exception("Error running agent")
@@ -106,6 +128,19 @@ async def _run_loop() -> None:
 
         console.print(f"\n[bold blue]Steward[/]")
         console.print(Markdown(response))
+
+        # ── Extract and save facts (background, non-blocking) ──
+        memory_mgr.touch_conversation(conv["id"])
+        try:
+            await memory_mgr.extract_and_save_facts(
+                user_message=user_input,
+                assistant_response=response,
+                session_id=conv["id"],
+            )
+            # Rebuild steward with updated facts for next turn
+            steward = build_steward(registry, memory_manager=memory_mgr)
+        except Exception:
+            logger.debug("Fact extraction failed (non-critical)", exc_info=True)
 
 
 def cli() -> None:

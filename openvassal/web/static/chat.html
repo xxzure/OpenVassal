@@ -747,8 +747,14 @@
                 <div class="avatar">🤖</div>
                 <div class="info">
                     <h2>Steward</h2>
-                    <p>Your personal AI orchestrator</p>
+                    <p>Your personal AI orchestrator · <span id="chat-model"
+                            style="color:var(--accent);">loading…</span></p>
                 </div>
+                <button onclick="clearChat()"
+                    style="margin-left:auto;margin-right:12px;background:none;border:1px solid var(--border);color:var(--text-secondary);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;transition:var(--transition);"
+                    onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+                    onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">🗑
+                    Clear</button>
                 <div class="status-indicator">
                     <span class="status-dot"></span>
                     Online
@@ -833,9 +839,10 @@
             const div = document.createElement('div');
             div.className = `msg ${sender}`;
 
-            const label = sender === 'user' ? 'You' : agentName;
+            // Force all agent messages to just say "Steward", hiding the backend sub-agents
+            const label = sender === 'user' ? 'You' : 'Steward';
             const icon = agentIcon(label);
-            const gradient = sender === 'agent' ? agentGradient(agentName) : '';
+            const gradient = sender === 'agent' ? agentGradient('Steward') : '';
 
             // Render markdown for agent messages
             const rendered = sender === 'agent' ? marked.parse(content) : escapeHtml(content);
@@ -969,6 +976,28 @@
         // ── Init ─────────────────────────────────────
         document.getElementById('input').focus();
         loadResults();
+
+        // Fetch and display current model name
+        fetch(`${API}/api/env`)
+            .then(r => r.json())
+            .then(data => {
+                const el = document.getElementById('chat-model');
+                if (el) el.textContent = data.default_model || 'gpt-4o';
+            })
+            .catch(() => {
+                const el = document.getElementById('chat-model');
+                if (el) el.textContent = 'unknown';
+            });
+
+        function clearChat() {
+            chatHistory = [];
+            const messages = document.getElementById('messages');
+            const welcome = document.getElementById('welcome');
+            const typing = document.getElementById('typing');
+            // Remove all message divs but keep welcome and typing
+            messages.querySelectorAll('.msg').forEach(m => m.remove());
+            if (welcome) welcome.style.display = '';
+        }
     </script>
 
 </body>

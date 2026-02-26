@@ -178,6 +178,7 @@
             letter-spacing: -0.03em;
             background: linear-gradient(135deg, var(--text-primary), var(--accent));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -437,48 +438,6 @@
             line-height: 1.5;
         }
 
-        /* ── Plan cards ───────────────────────────────── */
-        .plan-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
-        }
-
-        .plan-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-            text-align: center;
-            transition: var(--transition);
-            cursor: default;
-        }
-
-        .plan-card .plan-name {
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: capitalize;
-            margin-bottom: 4px;
-        }
-
-        .plan-card .plan-price {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--accent);
-            margin: 8px 0;
-        }
-
-        .plan-card .plan-price span {
-            font-size: 13px;
-            color: var(--text-muted);
-            font-weight: 400;
-        }
-
-        .plan-card .plan-desc {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
         /* ── Buttons ──────────────────────────────────── */
         .btn {
             display: inline-flex;
@@ -591,9 +550,7 @@
                 grid-template-columns: 1fr;
             }
 
-            .plan-grid {
-                grid-template-columns: 1fr 1fr;
-            }
+
         }
     </style>
 </head>
@@ -642,13 +599,7 @@
                     </svg>
                     Agents
                 </li>
-                <li class="nav-item" data-section="plans" onclick="switchSection(this)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect width="20" height="14" x="2" y="5" rx="2" />
-                        <path d="M2 10h20" />
-                    </svg>
-                    Plans
-                </li>
+
                 <li class="nav-item" data-section="system" onclick="switchSection(this)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path
@@ -669,7 +620,7 @@
         <!-- ── Main Content ────────────────────────── -->
         <main class="main">
 
-            <!-- ═══ API Keys ═══════════════════════════ -->
+            <!-- ═══ API Keys ═════════════════════════════ -->
             <div id="section-api-keys" class="section active">
                 <div class="page-header">
                     <h2>API Keys</h2>
@@ -679,7 +630,7 @@
                 <div class="card">
                     <div class="card-title">
                         OpenAI
-                        <span class="badge">Required</span>
+                        <span class="badge">Default</span>
                     </div>
                     <div class="form-group">
                         <label>API Key <span class="hint">from platform.openai.com</span></label>
@@ -720,6 +671,22 @@
                             </div>
                         </div>
                     </div>
+
+                </div>
+
+                <!-- Custom Providers -->
+                <div class="card" style="margin-top: 8px;">
+                    <div class="card-title">
+                        Custom Providers
+                        <span class="badge"
+                            style="background: rgba(100, 116, 139, 0.15); color: #94a3b8; border-color: rgba(100, 116, 139, 0.2);">OpenAI-compatible</span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+                        Add any OpenAI-compatible API provider (Ollama, Together AI, Groq, etc.).
+                    </p>
+                    <div id="custom-providers-container"></div>
+                    <button class="btn btn-secondary" onclick="addCustomProvider()" style="margin-top: 8px;">+ Add
+                        Custom Provider</button>
                 </div>
 
                 <div class="btn-group">
@@ -738,13 +705,15 @@
                     <div class="card-title">Primary Model</div>
                     <div class="form-group">
                         <label>Default LLM <span class="hint">used by the Steward agent</span></label>
-                        <select id="default_model"></select>
+                        <select id="default_model" onchange="handleModelChange(this)"></select>
+                        <input type="text" id="custom_model_input"
+                            placeholder="e.g. gpt-4o, claude-3-5-sonnet, my-custom-model"
+                            style="display:none;margin-top:8px;"
+                            oninput="document.getElementById('default_model').dataset.customValue = this.value">
                     </div>
                     <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
-                        💡 Each agent can override this in the Agents tab. Non-OpenAI models use the
-                        <code
-                            style="color: var(--accent); background: var(--accent-glow); padding: 1px 5px; border-radius: 4px;">litellm/</code>
-                        prefix.
+                        💡 Each agent can override this in the Agents tab. Pick a preset model or enter any model string
+                        your provider supports.
                     </p>
                 </div>
 
@@ -769,17 +738,7 @@
                 </div>
             </div>
 
-            <!-- ═══ Plans ══════════════════════════════ -->
-            <div id="section-plans" class="section">
-                <div class="page-header">
-                    <h2>Plans & Pricing</h2>
-                    <p>Insurance-style subscriptions — base plan + per-agent add-ons.</p>
-                </div>
 
-                <div id="plans-container" class="plan-grid">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
 
             <!-- ═══ System ═════════════════════════════ -->
             <div id="section-system" class="section">
@@ -830,6 +789,10 @@
             el.classList.add('active');
             const sectionId = 'section-' + el.dataset.section;
             document.getElementById(sectionId).classList.add('active');
+            // Refresh models when switching to Models or Agents (custom providers may have changed)
+            if (el.dataset.section === 'models' || el.dataset.section === 'agents') {
+                loadModels().then(loadEnv);
+            }
         }
 
         // ── Toast ────────────────────────────────────
@@ -850,6 +813,31 @@
             } else {
                 input.type = 'password';
                 btn.textContent = 'Show';
+            }
+        }
+
+        // ── Provider status indicators ───────────────
+        function updateProviderStatus() {
+            const keys = [
+                'openai_api_key', 'anthropic_api_key', 'gemini_api_key'
+            ];
+            for (const id of keys) {
+                const input = document.getElementById(id);
+                if (!input) continue;
+                const card = input.closest('.card');
+                if (!card) continue;
+                const title = card.querySelector('.card-title');
+                if (!title) continue;
+                // Remove existing indicator
+                const old = title.querySelector('.provider-status');
+                if (old) old.remove();
+                // Add new indicator
+                const dot = document.createElement('span');
+                dot.className = 'provider-status';
+                const configured = input.value.trim().length > 0;
+                dot.style.cssText = `display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:8px;vertical-align:middle;${configured ? 'background:#34d399;box-shadow:0 0 6px #34d399;' : 'background:#475569;'}`;
+                dot.title = configured ? 'Configured' : 'Not configured';
+                title.appendChild(dot);
             }
         }
 
@@ -890,6 +878,10 @@
                 document.getElementById('database_path').value = data.database_path || './data/OpenVassal.db';
                 document.getElementById('log_level').value = data.log_level || 'INFO';
 
+                // Load custom providers
+                customProviders = data.custom_providers || [];
+                renderCustomProviders();
+
                 // Set default model after models are loaded
                 const modelSelect = document.getElementById('default_model');
                 if (modelSelect.options.length > 0) {
@@ -900,6 +892,9 @@
             } catch (e) {
                 showToast('Failed to load config', 'error');
             }
+
+            // Update provider status indicators
+            updateProviderStatus();
         }
 
         async function loadModels() {
@@ -934,11 +929,33 @@
 
                 // Apply pending value
                 if (select.dataset.pending) {
-                    select.value = select.dataset.pending;
+                    const pending = select.dataset.pending;
                     delete select.dataset.pending;
+                    // If pending value is not in the list, add it
+                    const inList = availableModels.some(m => m.id === pending);
+                    if (pending && pending !== '__custom__' && !inList) {
+                        const currentGroup = document.createElement('optgroup');
+                        currentGroup.label = 'Current';
+                        const currentOpt = document.createElement('option');
+                        currentOpt.value = pending;
+                        currentOpt.textContent = pending;
+                        currentGroup.appendChild(currentOpt);
+                        select.insertBefore(currentGroup, customGroup);
+                    }
+                    select.value = pending;
                 }
             } catch (e) {
                 console.error('Failed to load models', e);
+            }
+        }
+
+        function handleModelChange(select) {
+            const customInput = document.getElementById('custom_model_input');
+            if (select.value === '__custom__') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
             }
         }
 
@@ -975,9 +992,10 @@
                 <div class="agent-desc">${a.description || 'No description'}</div>
                 <div class="form-group">
                     <label>Model <span class="hint">override</span></label>
-                    <select onchange="updateAgentModel(${i}, this.value)" id="agent-model-${i}">
+                    <select onchange="handleAgentModelChange(${i}, this)" id="agent-model-${i}">
                         ${buildModelOptions(a.model)}
                     </select>
+                    <input type="text" id="agent-custom-model-${i}" placeholder="e.g. my-custom-model" style="display:none;margin-top:6px;font-size:13px;" oninput="updateAgentModel(${i}, this.value)">
                 </div>
             `;
                 container.appendChild(card);
@@ -999,9 +1017,12 @@
 
             // If current model is not in list, add it
             const inList = availableModels.some(m => m.id === currentModel);
-            if (currentModel && !inList) {
+            if (currentModel && currentModel !== '__custom__' && !inList) {
                 html += `<optgroup label="Current"><option value="${currentModel}" selected>${currentModel}</option></optgroup>`;
             }
+
+            // Add custom entry option
+            html += `<optgroup label="Custom"><option value="__custom__" ${currentModel === '__custom__' ? 'selected' : ''}>Enter custom model…</option></optgroup>`;
 
             return html;
         }
@@ -1015,25 +1036,66 @@
             currentAgents[idx].model = model;
         }
 
-        async function loadPlans() {
-            try {
-                const res = await fetch(`${API}/api/plans`);
-                const data = await res.json();
-                const container = document.getElementById('plans-container');
-                container.innerHTML = '';
+        function handleAgentModelChange(idx, select) {
+            const customInput = document.getElementById(`agent-custom-model-${idx}`);
+            if (select.value === '__custom__') {
+                customInput.style.display = 'block';
+                customInput.focus();
+                updateAgentModel(idx, '');  // Clear until user types
+            } else {
+                customInput.style.display = 'none';
+                updateAgentModel(idx, select.value);
+            }
+        }
 
-                for (const [key, plan] of Object.entries(data.plans)) {
-                    const card = document.createElement('div');
-                    card.className = 'plan-card';
-                    card.innerHTML = `
-                    <div class="plan-name">${plan.name}</div>
-                    <div class="plan-price">$${plan.monthly_cost.toFixed(2)} <span>/mo</span></div>
-                    <div class="plan-desc">${plan.description}</div>
+
+
+        // ── Custom Providers ─────────────────────────
+        let customProviders = [];
+
+        function addCustomProvider() {
+            customProviders.push({ name: '', api_key: '', base_url: '', model: '' });
+            renderCustomProviders();
+        }
+
+        function removeCustomProvider(idx) {
+            customProviders.splice(idx, 1);
+            renderCustomProviders();
+        }
+
+        function updateCustomProvider(idx, field, value) {
+            customProviders[idx][field] = value;
+        }
+
+        function renderCustomProviders() {
+            const container = document.getElementById('custom-providers-container');
+            container.innerHTML = '';
+            for (let i = 0; i < customProviders.length; i++) {
+                const cp = customProviders[i];
+                const div = document.createElement('div');
+                div.style.cssText = 'background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px; position: relative;';
+                div.innerHTML = `
+                    <button onclick="removeCustomProvider(${i})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:4px;" title="Remove">✕</button>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group">
+                            <label>Provider Name</label>
+                            <input type="text" value="${cp.name}" placeholder="e.g. Ollama" oninput="updateCustomProvider(${i}, 'name', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>API Key</label>
+                            <input type="password" value="${cp.api_key}" placeholder="sk-..." oninput="updateCustomProvider(${i}, 'api_key', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label>Base URL <span class="hint">OpenAI-compatible endpoint</span></label>
+                            <input type="text" value="${cp.base_url}" placeholder="https://api.example.com/v1" oninput="updateCustomProvider(${i}, 'base_url', this.value)">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:8px;">
+                        <label>Model IDs <span class="hint" style="color:var(--accent);">⚡ required — these appear in the Models / Agents dropdowns after saving</span></label>
+                        <input type="text" value="${cp.model}" placeholder="e.g. deepseek-chat, deepseek-reasoner (comma-separated for multiple)" oninput="updateCustomProvider(${i}, 'model', this.value)" style="font-size:13px;">
+                    </div>
                 `;
-                    container.appendChild(card);
-                }
-            } catch (e) {
-                console.error('Failed to load plans', e);
+                container.appendChild(div);
             }
         }
 
@@ -1043,18 +1105,30 @@
                 openai_api_key: document.getElementById('openai_api_key').value,
                 anthropic_api_key: document.getElementById('anthropic_api_key').value,
                 gemini_api_key: document.getElementById('gemini_api_key').value,
-                default_model: document.getElementById('default_model').value,
+                default_model: (() => {
+                    const sel = document.getElementById('default_model');
+                    if (sel.value === '__custom__') {
+                        return document.getElementById('custom_model_input').value || 'gpt-4o';
+                    }
+                    return sel.value;
+                })(),
                 database_path: document.getElementById('database_path').value,
                 log_level: document.getElementById('log_level').value,
+                custom_providers: customProviders.filter(cp => cp.name.trim() !== ''),
             };
             try {
-                const res = await fetch(`${API}/api/env`, {
+                const res = await fetch(`${API} /api/env`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
                 });
                 if (res.ok) {
                     showToast('✅ Configuration saved successfully!');
+                    // Reload models and env so custom provider models appear
+                    // and the selected default_model is preserved
+                    await loadModels();
+                    await loadEnv();
+                    await loadAgents();
                 } else {
                     showToast('Failed to save config', 'error');
                 }
@@ -1074,7 +1148,7 @@
                 plan_tier: a.plan_tier || '',
             }));
             try {
-                const res = await fetch(`${API}/api/agents`, {
+                const res = await fetch(`${API} /api/agents`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ agents }),
@@ -1094,7 +1168,7 @@
             await loadModels();
             await loadEnv();
             await loadAgents();
-            await loadPlans();
+
         }
 
         init();

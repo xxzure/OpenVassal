@@ -2,18 +2,42 @@
 
 An open-source AI personal assistant powered by multiple agents, each with its own LLM.
 
-## Setup
+## Quick Start
+
+```bash
+git clone https://github.com/your-org/openvassal.git && cd openvassal
+./setup.sh          # one-command bootstrap (creates venv, installs deps, sets API key)
+make run            # start chatting
+```
+
+Or use **Make** directly:
+
+```bash
+make setup          # create venv + install deps + prepare .env
+make run            # terminal chat
+make ui             # web UI at http://127.0.0.1:8585
+```
+
+## All Make Commands
+
+| Command | Description |
+|---|---|
+| `make setup` | Create venv, install deps, prepare `.env` |
+| `make run` | Start the terminal chat |
+| `make ui` | Start the web UI (port 8585) |
+| `make test` | Run pytest |
+| `make lint` | Run ruff linter |
+| `make format` | Auto-format code with ruff |
+| `make docker` | Build & run with Docker Compose |
+| `make clean` | Remove venv, caches, build artifacts |
+| `make help` | Show all available targets |
+
+## Manual Setup
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env   # add your OPENAI_API_KEY
-```
-
-## Usage
-
-```bash
-openvassal --setup     # web UI at http://127.0.0.1:8585
 openvassal             # terminal chat
 ```
 
@@ -44,7 +68,7 @@ All data is stored in a local **SQLite** database.
 
 Edit `.env` for API keys and defaults, or use the web UI (`openvassal --setup`).
 
-Supports **OpenAI**, **Anthropic** (Claude), and **Google Gemini** via LiteLLM.
+Supports **OpenAI**, **Anthropic** (Claude), **Google Gemini**, and any **OpenAI-compatible** API (DeepSeek, MiniMax, Kimi, Ollama, etc.) via custom providers + LiteLLM.
 
 ## Testing
 

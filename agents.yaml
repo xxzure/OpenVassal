@@ -5,43 +5,17 @@
 # ──────────────────────────────────────────────────────────
 
 agents:
-  - name: coding
-    module: openvassal.agents.coding
-    class: CodingAgent
-    description: "Code generation, review, debugging, and technical assistance"
-    model: "gpt-4o"                         # override per agent
-    enabled: true
-    plan_tier: coding
-
-  - name: daily_work
-    module: openvassal.agents.daily_work
-    class: DailyWorkAgent
-    description: "Calendar, tasks, email triage, and daily productivity"
-    model: "gpt-4o-mini"
-    enabled: true
-    plan_tier: daily_work
-
-  # ── Future agents (disabled until implemented) ──────────
-  # - name: telephone
-  #   module: openvassal.agents.telephone
-  #   class: TelephoneAgent
-  #   description: "Call summaries, contact management, reminders"
-  #   model: "gpt-4o-mini"
-  #   enabled: false
-  #   plan_tier: telephone
-  #
-  # - name: financial
-  #   module: openvassal.agents.financial
-  #   class: FinancialAgent
-  #   description: "Expense tracking, budgets, investment summaries"
-  #   model: "litellm/anthropic/claude-3-5-sonnet-20240620"
-  #   enabled: false
-  #   plan_tier: financial
-  #
-  # - name: health
-  #   module: openvassal.agents.health
-  #   class: HealthAgent
-  #   description: "Health metrics, medication reminders, fitness"
-  #   model: "litellm/gemini/gemini-2.0-flash"
-  #   enabled: false
-  #   plan_tier: health
+- name: coding
+  module: openvassal.agents.coding
+  class: CodingAgent
+  description: Code generation, review, debugging, and technical assistance
+  model: litellm/gemini/gemini-2.5-flash
+  enabled: true
+  plan_tier: coding
+- name: daily_work
+  module: openvassal.agents.daily_work
+  class: DailyWorkAgent
+  description: Calendar, tasks, email triage, and daily productivity
+  model: litellm/gemini/gemini-2.5-flash
+  enabled: true
+  plan_tier: daily_work

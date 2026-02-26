@@ -35,7 +35,8 @@ class BaseAgent(ABC):
         data_store: DataStore | None = None,
         **kwargs: Any,
     ):
-        self.model = model or settings.default_model
+        raw_model = model or settings.default_model
+        self.model = settings.resolve_model(raw_model)
         self.data_store = data_store or DataStore()
         self._extra = kwargs
 

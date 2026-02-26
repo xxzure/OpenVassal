@@ -18,6 +18,7 @@ class DataCategory(str, Enum):
     DAILY = "daily"
     CONTACTS = "contacts"
     FILES = "files"
+    MEMORY = "memory"
 
 
 # ── Core data record ──────────────────────────────────────
