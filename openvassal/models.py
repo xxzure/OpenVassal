@@ -42,26 +42,6 @@ class UserProfile(BaseModel):
     preferences: dict[str, Any] = Field(default_factory=dict)
 
 
-# ── Plan / subscription model ─────────────────────────────
-class PlanTier(BaseModel):
-    """A single plan tier (base or per-agent add-on)."""
-    name: str
-    description: str = ""
-    monthly_cost: float = 0.0
-    included_agents: list[str] = Field(default_factory=list)
-    usage_limits: dict[str, int] = Field(
-        default_factory=dict,
-        description="e.g. {'messages_per_day': 100, 'api_calls_per_day': 50}",
-    )
-
-
-class UserSubscription(BaseModel):
-    """The user's current subscription = base plan + add-on agent plans."""
-    base_plan: str = "free"
-    active_agent_plans: list[str] = Field(default_factory=list)
-    started_at: datetime = Field(default_factory=datetime.now)
-
-
 # ── Agent configuration (from agents.yaml) ────────────────
 class AgentConfig(BaseModel):
     """Configuration for a single agent, loaded from agents.yaml."""
@@ -71,6 +51,5 @@ class AgentConfig(BaseModel):
     description: str = ""
     model: str = ""
     enabled: bool = True
-    plan_tier: str = ""
 
     model_config = {"populate_by_name": True}

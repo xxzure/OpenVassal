@@ -11,11 +11,9 @@ agents:
   description: Code generation, review, debugging, and technical assistance
   model: litellm/gemini/gemini-2.5-flash
   enabled: true
-  plan_tier: coding
 - name: daily_work
   module: openvassal.agents.daily_work
   class: DailyWorkAgent
   description: Calendar, tasks, email triage, and daily productivity
   model: litellm/gemini/gemini-2.5-flash
   enabled: true
-  plan_tier: daily_work

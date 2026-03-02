@@ -58,7 +58,6 @@ class AgentEntry(BaseModel):
     description: str = ""
     model: str = ""
     enabled: bool = True
-    plan_tier: str = ""
 
 
 class AgentsConfig(BaseModel):
@@ -530,7 +529,6 @@ async def save_agents(config: AgentsConfig):
             "description": agent.description,
             "model": agent.model,
             "enabled": agent.enabled,
-            "plan_tier": agent.plan_tier,
         }
         agents_data.append(entry)
     _write_agents_yaml(agents_data)
@@ -575,8 +573,6 @@ async def get_available_models():
                     })
 
     return {"models": models}
-
-
 def start_server(host: str = "127.0.0.1", port: int = 8585) -> None:
     """Start the config UI server."""
     import uvicorn

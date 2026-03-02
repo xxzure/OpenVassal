@@ -55,7 +55,7 @@ All data is stored in a local **SQLite** database.
 
 ## Web UI
 
-- **`/`** — Settings: API keys, models, agents, plans
+- **`/`** — Settings: API keys, models, agents
 - **`/chat`** — Chat with the Steward and see which agent responds
 
 ## Add a New Agent
@@ -73,7 +73,7 @@ Supports **OpenAI**, **Anthropic** (Claude), **Google Gemini**, and any **OpenAI
 ## Testing
 
 ```bash
-pytest tests/ -v   # 20 tests
+pytest tests/ -v
 ```
 
 ## License

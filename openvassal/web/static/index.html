@@ -599,7 +599,6 @@
                     </svg>
                     Agents
                 </li>
-
                 <li class="nav-item" data-section="system" onclick="switchSection(this)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path
@@ -737,8 +736,6 @@
                     <button class="btn btn-primary" onclick="saveAgents()">💾 Save Agents</button>
                 </div>
             </div>
-
-
 
             <!-- ═══ System ═════════════════════════════ -->
             <div id="section-system" class="section">
@@ -1098,7 +1095,6 @@
                 container.appendChild(div);
             }
         }
-
         // ── Save ─────────────────────────────────────
         async function saveEnv() {
             const data = {
@@ -1117,7 +1113,7 @@
                 custom_providers: customProviders.filter(cp => cp.name.trim() !== ''),
             };
             try {
-                const res = await fetch(`${API} /api/env`, {
+                const res = await fetch(`${API}/api/env`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
@@ -1145,10 +1141,9 @@
                 description: a.description || '',
                 model: a.model || '',
                 enabled: a.enabled,
-                plan_tier: a.plan_tier || '',
             }));
             try {
-                const res = await fetch(`${API} /api/agents`, {
+                const res = await fetch(`${API}/api/agents`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ agents }),
@@ -1168,7 +1163,6 @@
             await loadModels();
             await loadEnv();
             await loadAgents();
-
         }
 
         init();

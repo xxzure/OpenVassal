@@ -19,7 +19,6 @@ from openvassal.agents.registry import AgentRegistry
 from openvassal.agents.steward import build_steward
 from openvassal.config import settings
 from openvassal.memory import MemoryManager
-from openvassal.plans.manager import PlanManager
 
 console = Console()
 logger = logging.getLogger("openvassal")
@@ -33,15 +32,14 @@ def _setup_logging() -> None:
     )
 
 
-def _print_banner(registry: AgentRegistry, plan_mgr: PlanManager) -> None:
+def _print_banner(registry: AgentRegistry) -> None:
     agents = ", ".join(registry.agent_names) or "(none)"
     console.print(
         Panel.fit(
             f"[bold cyan]OpenVassal[/] — AI Personal Assistant\n\n"
             f"[dim]Model:[/]  {settings.default_model}\n"
             f"[dim]Agents:[/] {agents}\n"
-            f"[dim]Plan:[/]   {plan_mgr.subscription.base_plan} "
-            f"(${plan_mgr.monthly_total:.2f}/mo)\n\n"
+            f"\n"
             f"[dim]Type your request, or /help for commands.[/]",
             border_style="cyan",
         )
@@ -54,11 +52,6 @@ async def _run_loop() -> None:
     registry = AgentRegistry()
     registry.load()
 
-    plan_mgr = PlanManager()
-    plan_mgr.subscription.base_plan = "base"
-    for name in registry.agent_names:
-        plan_mgr.add_agent_plan(name)
-
     # Initialize memory
     memory_mgr = MemoryManager()
     conv = memory_mgr.create_conversation("CLI Session")
@@ -66,7 +59,7 @@ async def _run_loop() -> None:
 
     steward = build_steward(registry, memory_manager=memory_mgr)
 
-    _print_banner(registry, plan_mgr)
+    _print_banner(registry)
 
     facts = memory_mgr.get_all_facts()
     if facts:
@@ -91,15 +84,11 @@ async def _run_loop() -> None:
             console.print(
                 Markdown(
                     "**Commands:**\n"
-                    "- `/plan` — show subscription info\n"
                     "- `/agents` — list loaded agents\n"
                     "- `/memory` — show remembered facts\n"
                     "- `/quit` — exit\n"
                 )
             )
-            continue
-        if cmd == "/plan":
-            console.print(Panel(plan_mgr.summary(), title="Subscription", border_style="yellow"))
             continue
         if cmd == "/agents":
             for name, agent in registry.get_all().items():

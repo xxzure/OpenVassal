@@ -30,7 +30,6 @@ def test_load_enabled_agents(tmp_path):
             "description": "Coding agent",
             "model": "gpt-4o",
             "enabled": True,
-            "plan_tier": "coding",
         },
         {
             "name": "daily_work",
@@ -39,7 +38,6 @@ def test_load_enabled_agents(tmp_path):
             "description": "Daily work agent",
             "model": "gpt-4o-mini",
             "enabled": True,
-            "plan_tier": "daily_work",
         },
     ]
     yaml_path = _make_agents_yaml(config, tmp_path)
@@ -58,7 +56,6 @@ def test_disabled_agent_not_loaded(tmp_path):
             "module": "openvassal.agents.coding",
             "class": "CodingAgent",
             "enabled": False,
-            "plan_tier": "coding",
         },
     ]
     yaml_path = _make_agents_yaml(config, tmp_path)
