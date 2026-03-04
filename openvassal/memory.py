@@ -1,13 +1,13 @@
-"""Memory manager — conversation sessions + persistent user facts.
+"""Memory manager — unified cross-agent memory via mem0.
 
 Provides two capabilities:
-1. Conversation sessions via the SDK's SQLiteSession for per-chat history.
-2. User facts that persist across all conversations (name, preferences, etc.).
+1. Semantic memory via mem0 — auto-extraction, search, and injection of
+   personal knowledge across agents and sessions.
+2. Conversation metadata — SQLite-backed conversation list (title, timestamps).
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import uuid
@@ -15,90 +15,92 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from agents.memory.sqlite_session import SQLiteSession
-
 from openvassal.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 class MemoryManager:
-    """Manages conversation sessions and persistent user memory.
+    """Manages cross-agent memory via mem0 and conversation metadata via SQLite.
 
-    All data is stored in the same SQLite database used by the DataStore,
-    keeping everything in one place.
+    mem0 handles the heavy lifting: extracting facts from conversations,
+    semantic search, deduplication, and forgetting. We just provide a
+    thin wrapper that plugs into the rest of OpenVassal.
     """
 
     CONVERSATIONS_TABLE = "conversations"
-    FACTS_TABLE = "user_facts"
 
-    def __init__(self, db_path: Path | None = None):
+    def __init__(self, db_path: Path | None = None, user_id: str | None = None):
         self._db_path = db_path or settings.db_path
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self._db_path))
         self._conn.row_factory = sqlite3.Row
         self._ensure_schema()
-        self._sessions: dict[str, SQLiteSession] = {}
 
-    # ── Schema ────────────────────────────────────────────
+        self._user_id = user_id or settings.mem0_user_id
+        self._mem0 = None  # lazy init
+
+    # ── mem0 client (lazy) ────────────────────────────────
+    def _get_mem0(self):
+        """Lazily initialize the mem0 Memory client."""
+        if self._mem0 is None:
+            try:
+                from mem0 import Memory
+
+                config = {
+                    "version": "v1.1",
+                }
+                self._mem0 = Memory.from_config(config)
+                logger.info("mem0 Memory initialized (local mode)")
+            except Exception:
+                logger.warning("mem0 initialization failed — memory features disabled", exc_info=True)
+        return self._mem0
+
+    # ── Schema (conversations only) ───────────────────────
     def _ensure_schema(self) -> None:
-        """Create tables if they don't exist."""
         self._conn.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {self.CONVERSATIONS_TABLE} (
                 id          TEXT PRIMARY KEY,
                 title       TEXT NOT NULL DEFAULT 'New Chat',
+                agent_name  TEXT NOT NULL DEFAULT '',
                 created_at  TEXT NOT NULL,
                 updated_at  TEXT NOT NULL
-            )
-            """
-        )
-        self._conn.execute(
-            f"""
-            CREATE TABLE IF NOT EXISTS {self.FACTS_TABLE} (
-                id                  TEXT PRIMARY KEY,
-                fact                TEXT NOT NULL,
-                source_conversation TEXT,
-                created_at          TEXT NOT NULL,
-                updated_at          TEXT NOT NULL
             )
             """
         )
         self._conn.commit()
 
     # ── Conversations ─────────────────────────────────────
-    def create_conversation(self, title: str = "New Chat") -> dict[str, str]:
-        """Create a new conversation, return its metadata."""
+    def create_conversation(self, title: str = "New Chat", agent_name: str = "") -> dict[str, str]:
         conv_id = uuid.uuid4().hex[:12]
         now = datetime.now(timezone.utc).isoformat()
         self._conn.execute(
-            f"INSERT INTO {self.CONVERSATIONS_TABLE} (id, title, created_at, updated_at) "
-            f"VALUES (?, ?, ?, ?)",
-            (conv_id, title, now, now),
+            f"INSERT INTO {self.CONVERSATIONS_TABLE} "
+            f"(id, title, agent_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (conv_id, title, agent_name, now, now),
         )
         self._conn.commit()
         logger.info("Created conversation '%s' (title=%s)", conv_id, title)
-        return {"id": conv_id, "title": title, "created_at": now, "updated_at": now}
+        return {"id": conv_id, "title": title, "agent_name": agent_name,
+                "created_at": now, "updated_at": now}
 
     def list_conversations(self) -> list[dict[str, str]]:
-        """List all conversations, newest first."""
         rows = self._conn.execute(
-            f"SELECT id, title, created_at, updated_at FROM {self.CONVERSATIONS_TABLE} "
-            f"ORDER BY updated_at DESC"
+            f"SELECT id, title, agent_name, created_at, updated_at "
+            f"FROM {self.CONVERSATIONS_TABLE} ORDER BY updated_at DESC"
         ).fetchall()
         return [dict(row) for row in rows]
 
     def get_conversation(self, conv_id: str) -> dict[str, str] | None:
-        """Get a single conversation's metadata."""
         row = self._conn.execute(
-            f"SELECT id, title, created_at, updated_at FROM {self.CONVERSATIONS_TABLE} "
-            f"WHERE id = ?",
+            f"SELECT id, title, agent_name, created_at, updated_at "
+            f"FROM {self.CONVERSATIONS_TABLE} WHERE id = ?",
             (conv_id,),
         ).fetchone()
         return dict(row) if row else None
 
     def update_conversation_title(self, conv_id: str, title: str) -> None:
-        """Update a conversation's title."""
         now = datetime.now(timezone.utc).isoformat()
         self._conn.execute(
             f"UPDATE {self.CONVERSATIONS_TABLE} SET title = ?, updated_at = ? WHERE id = ?",
@@ -107,7 +109,6 @@ class MemoryManager:
         self._conn.commit()
 
     def touch_conversation(self, conv_id: str) -> None:
-        """Update the conversation's updated_at timestamp."""
         now = datetime.now(timezone.utc).isoformat()
         self._conn.execute(
             f"UPDATE {self.CONVERSATIONS_TABLE} SET updated_at = ? WHERE id = ?",
@@ -116,145 +117,121 @@ class MemoryManager:
         self._conn.commit()
 
     def delete_conversation(self, conv_id: str) -> bool:
-        """Delete a conversation and its session data."""
-        # Remove session cache
-        if conv_id in self._sessions:
-            del self._sessions[conv_id]
-
-        # Remove session messages (SDK table)
-        try:
-            self._conn.execute(
-                "DELETE FROM agent_messages WHERE session_id = ?", (conv_id,)
-            )
-        except sqlite3.OperationalError:
-            pass  # Table may not exist yet
-
-        # Remove conversation metadata
         cursor = self._conn.execute(
             f"DELETE FROM {self.CONVERSATIONS_TABLE} WHERE id = ?", (conv_id,)
         )
         self._conn.commit()
         return cursor.rowcount > 0
 
-    # ── Sessions ──────────────────────────────────────────
-    def get_or_create_session(self, conv_id: str) -> SQLiteSession:
-        """Get (or create) an SQLiteSession for a conversation."""
-        if conv_id not in self._sessions:
-            self._sessions[conv_id] = SQLiteSession(
-                session_id=conv_id,
-                db_path=str(self._db_path),
+    # ── mem0 Memory Operations ────────────────────────────
+    def add_memory(
+        self,
+        text: str,
+        agent_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict | None:
+        """Add a memory entry via mem0."""
+        mem0 = self._get_mem0()
+        if mem0 is None:
+            return None
+        try:
+            result = mem0.add(
+                text,
+                user_id=self._user_id,
+                agent_id=agent_id,
+                metadata=metadata or {},
             )
-        return self._sessions[conv_id]
+            logger.info("mem0 add: %s", result)
+            return result
+        except Exception:
+            logger.debug("mem0 add failed", exc_info=True)
+            return None
 
-    # ── User Facts ────────────────────────────────────────
-    def get_all_facts(self) -> list[dict[str, str]]:
-        """Return all user facts."""
-        rows = self._conn.execute(
-            f"SELECT id, fact, source_conversation, created_at, updated_at "
-            f"FROM {self.FACTS_TABLE} ORDER BY updated_at DESC"
-        ).fetchall()
-        return [dict(row) for row in rows]
+    def search_memory(self, query: str, limit: int = 10) -> list[dict]:
+        """Search memories semantically via mem0."""
+        mem0 = self._get_mem0()
+        if mem0 is None:
+            return []
+        try:
+            results = mem0.search(query, user_id=self._user_id, limit=limit)
+            # mem0 returns {"results": [...]} or a list directly
+            if isinstance(results, dict):
+                return results.get("results", [])
+            return results
+        except Exception:
+            logger.debug("mem0 search failed", exc_info=True)
+            return []
 
-    def get_facts_text(self) -> str:
-        """Return all facts as a formatted string for injection into prompts."""
-        facts = self.get_all_facts()
-        if not facts:
-            return "(No facts learned yet — pay attention to what the user shares!)"
-        return "\n".join(f"- {f['fact']}" for f in facts)
+    def get_all_memories(self) -> list[dict]:
+        """Get all memories for the current user via mem0."""
+        mem0 = self._get_mem0()
+        if mem0 is None:
+            return []
+        try:
+            results = mem0.get_all(user_id=self._user_id)
+            # mem0 returns {"results": [...]} or a list directly
+            if isinstance(results, dict):
+                return results.get("results", [])
+            return results
+        except Exception:
+            logger.debug("mem0 get_all failed", exc_info=True)
+            return []
 
-    def add_fact(self, fact: str, source_conversation: str | None = None) -> str:
-        """Add a user fact. Returns the fact ID."""
-        fact_id = uuid.uuid4().hex[:12]
-        now = datetime.now(timezone.utc).isoformat()
-        self._conn.execute(
-            f"INSERT INTO {self.FACTS_TABLE} "
-            f"(id, fact, source_conversation, created_at, updated_at) "
-            f"VALUES (?, ?, ?, ?, ?)",
-            (fact_id, fact, source_conversation, now, now),
-        )
-        self._conn.commit()
-        logger.info("Saved user fact: %s", fact)
-        return fact_id
+    def delete_memory(self, memory_id: str) -> bool:
+        """Delete a specific memory by ID via mem0."""
+        mem0 = self._get_mem0()
+        if mem0 is None:
+            return False
+        try:
+            mem0.delete(memory_id)
+            return True
+        except Exception:
+            logger.debug("mem0 delete failed", exc_info=True)
+            return False
 
-    def delete_fact(self, fact_id: str) -> bool:
-        """Delete a fact by ID."""
-        cursor = self._conn.execute(
-            f"DELETE FROM {self.FACTS_TABLE} WHERE id = ?", (fact_id,)
-        )
-        self._conn.commit()
-        return cursor.rowcount > 0
+    def get_memory_context(self, query: str = "", limit: int = 5) -> str:
+        """Get relevant memories formatted for injection into agent context.
 
-    def save_facts_from_list(
-        self, facts: list[str], source_conversation: str | None = None
-    ) -> int:
-        """Save a list of fact strings (deduplicating against existing facts).
-
-        Returns the number of new facts added.
+        If a query is provided, searches semantically. Otherwise returns
+        recent memories.
         """
-        existing = {f["fact"].lower().strip() for f in self.get_all_facts()}
-        added = 0
-        for fact in facts:
-            fact = fact.strip()
-            if fact and fact.lower() not in existing:
-                self.add_fact(fact, source_conversation)
-                existing.add(fact.lower())
-                added += 1
-        return added
+        if query:
+            memories = self.search_memory(query, limit=limit)
+        else:
+            memories = self.get_all_memories()[:limit]
 
-    async def extract_and_save_facts(
+        if not memories:
+            return "(No relevant memories found)"
+
+        lines = []
+        for mem in memories:
+            text = mem.get("memory", mem.get("text", str(mem)))
+            lines.append(f"- {text}")
+        return "\n".join(lines)
+
+    def save_interaction(
         self,
         user_message: str,
         assistant_response: str,
-        session_id: str | None = None,
-    ) -> int:
-        """Extract user facts from a conversation exchange and save them.
+        agent_id: str | None = None,
+    ) -> None:
+        """Save a conversation exchange to mem0 for automatic fact extraction.
 
-        Uses a lightweight LLM call to identify personal facts. Returns
-        the number of new facts saved.
+        mem0 will automatically extract and store relevant facts from the
+        conversation, deduplicating against existing memories.
         """
-        from agents import Agent, Runner
-
-        extractor = Agent(
-            name="FactExtractor",
-            instructions=(
-                "You are a fact extractor. Given a conversation exchange between a user "
-                "and an AI assistant, extract any personal facts about the USER. "
-                "Personal facts include: name, location, job, company, preferences, "
-                "habits, family, hobbies, technical skills, timezone, etc.\n\n"
-                "Rules:\n"
-                "- Only extract facts about the USER, not the assistant.\n"
-                "- Only extract facts that are clearly stated or strongly implied.\n"
-                "- Do NOT include conversational context or questions.\n"
-                "- Output ONLY a JSON array of fact strings. Example:\n"
-                '  ["User\'s name is James", "User works on OpenSearch"]\n'
-                "- If no personal facts are found, output: []\n"
-                "- Keep facts concise (one sentence each).\n"
-                "- Do not repeat facts that are essentially the same.\n"
-            ),
-            model=settings.resolve_model(settings.default_model),
-        )
-
-        prompt = (
-            f"USER MESSAGE:\n{user_message}\n\n"
-            f"ASSISTANT RESPONSE:\n{assistant_response}"
-        )
-
+        messages = [
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": assistant_response},
+        ]
+        mem0 = self._get_mem0()
+        if mem0 is None:
+            return
         try:
-            result = await Runner.run(extractor, input=prompt)
-            raw = result.final_output.strip()
-            # Parse the JSON array from the response
-            # Handle cases where the model wraps it in markdown code blocks
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-            facts = json.loads(raw)
-            if isinstance(facts, list) and facts:
-                count = self.save_facts_from_list(facts, session_id)
-                logger.info(
-                    "Extracted %d facts (%d new) from conversation",
-                    len(facts),
-                    count,
-                )
-                return count
+            mem0.add(
+                messages,
+                user_id=self._user_id,
+                agent_id=agent_id,
+            )
         except Exception:
-            logger.debug("Fact extraction failed (non-critical)", exc_info=True)
-        return 0
+            logger.debug("mem0 save_interaction failed (non-critical)", exc_info=True)

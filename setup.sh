@@ -33,6 +33,7 @@ fi
 
 echo ""
 echo -e "${BOLD}${CYAN}⚡ OpenVassal Setup${RESET}"
+echo -e "${DIM}  CrewAI + mem0 Personal Knowledge Base${RESET}"
 echo -e "${DIM}───────────────────────────────────────${RESET}"
 echo ""
 
@@ -55,7 +56,7 @@ source .venv/bin/activate
 
 # ── Dependencies ─────────────────────────────────────────────
 
-info "Installing dependencies..."
+info "Installing dependencies (crewai, mem0, ...)..."
 pip install --upgrade pip -q
 pip install -e ".[dev]" -q
 ok "Dependencies installed"
@@ -68,7 +69,7 @@ if [ ! -f ".env" ]; then
 
     echo ""
     echo -e "${BOLD}🔑  API Key Setup${RESET}"
-    read -rp "Enter your OpenAI API key (or press Enter to skip): " api_key
+    read -rp "Enter your OpenAI API key (required for mem0, or press Enter to skip): " api_key
     if [ -n "$api_key" ]; then
         if [[ "$OSTYPE" == "darwin"* ]]; then
             sed -i '' "s|^OPENAI_API_KEY=.*|OPENAI_API_KEY=${api_key}|" .env
@@ -77,7 +78,7 @@ if [ ! -f ".env" ]; then
         fi
         ok "API key saved to .env"
     else
-        echo -e "  ${DIM}Skipped — edit .env later to add your key.${RESET}"
+        echo -e "  ${DIM}Skipped — edit .env later to add your keys.${RESET}"
     fi
 else
     ok ".env already exists"

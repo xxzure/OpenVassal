@@ -26,7 +26,7 @@ class DataRecord(BaseModel):
     """A single record in the unified personal data store."""
     id: str | None = None
     category: DataCategory
-    source: str = Field(description="Where this data came from (e.g. 'apple_health', 'bank_csv')")
+    source: str = Field(description="Where this data came from (e.g. 'coding_agent', 'csv')")
     timestamp: datetime = Field(default_factory=datetime.now)
     title: str = ""
     content: str = ""
@@ -46,10 +46,24 @@ class UserProfile(BaseModel):
 class AgentConfig(BaseModel):
     """Configuration for a single agent, loaded from agents.yaml."""
     name: str
-    module: str
-    class_name: str = Field(alias="class")
-    description: str = ""
+    role: str = ""
+    goal: str = ""
+    backstory: str = ""
     model: str = ""
+    tools: list[str] = Field(default_factory=list)
     enabled: bool = True
+    verbose: bool = False
 
-    model_config = {"populate_by_name": True}
+
+# ── Pipeline configuration ────────────────────────────────
+class PipelineStep(BaseModel):
+    """A single step in a pipeline."""
+    agent: str = Field(description="Name of the agent to use for this step")
+    task: str = Field(description="Task description template for this step")
+
+
+class PipelineConfig(BaseModel):
+    """Configuration for a multi-step pipeline."""
+    name: str
+    description: str = ""
+    steps: list[PipelineStep] = Field(default_factory=list)

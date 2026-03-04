@@ -1,24 +1,28 @@
-"""CLI entry point — OpenVassal interactive personal assistant."""
+"""CLI entry point — OpenVassal interactive personal assistant.
+
+Supports:
+- Manual agent selection: /use <agent_name>
+- Pipeline execution: /pipeline <name> <description>
+- Memory views: /memory, /memory search <query>
+- Standard chat with the currently selected agent
+"""
 
 from __future__ import annotations
 
 import argparse
-import asyncio
 import logging
 import sys
-import webbrowser
 
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
-
-from agents import Runner
+from rich.table import Table
 
 from openvassal.agents.registry import AgentRegistry
-from openvassal.agents.steward import build_steward
 from openvassal.config import settings
 from openvassal.memory import MemoryManager
+from openvassal.orchestrator import Orchestrator
 
 console = Console()
 logger = logging.getLogger("openvassal")
@@ -32,13 +36,15 @@ def _setup_logging() -> None:
     )
 
 
-def _print_banner(registry: AgentRegistry) -> None:
+def _print_banner(registry: AgentRegistry, active_agent: str) -> None:
     agents = ", ".join(registry.agent_names) or "(none)"
+    pipelines = ", ".join(p.name for p in registry.pipelines) or "(none)"
     console.print(
         Panel.fit(
-            f"[bold cyan]OpenVassal[/] — AI Personal Assistant\n\n"
-            f"[dim]Model:[/]  {settings.default_model}\n"
-            f"[dim]Agents:[/] {agents}\n"
+            f"[bold cyan]OpenVassal[/] — Personal Knowledge Base\n\n"
+            f"[dim]Active Agent:[/]  [bold green]{active_agent}[/]\n"
+            f"[dim]Agents:[/]        {agents}\n"
+            f"[dim]Pipelines:[/]     {pipelines}\n"
             f"\n"
             f"[dim]Type your request, or /help for commands.[/]",
             border_style="cyan",
@@ -46,28 +52,46 @@ def _print_banner(registry: AgentRegistry) -> None:
     )
 
 
-async def _run_loop() -> None:
+def _print_help() -> None:
+    console.print(
+        Markdown(
+            "## Commands\n"
+            "- `/use <agent>` — switch to a different agent\n"
+            "- `/agents` — list available agents\n"
+            "- `/pipeline <name> <description>` — run a multi-step pipeline\n"
+            "- `/pipelines` — list available pipelines\n"
+            "- `/memory` — show all memories\n"
+            "- `/memory search <query>` — search memories\n"
+            "- `/help` — show this help\n"
+            "- `/quit` — exit\n"
+        )
+    )
+
+
+def _run_loop() -> None:
     """Main REPL loop."""
-    # Load the system
     registry = AgentRegistry()
     registry.load()
 
-    # Initialize memory
-    memory_mgr = MemoryManager()
-    conv = memory_mgr.create_conversation("CLI Session")
-    session = memory_mgr.get_or_create_session(conv["id"])
+    memory = MemoryManager()
+    orchestrator = Orchestrator(registry, memory)
 
-    steward = build_steward(registry, memory_manager=memory_mgr)
+    # Determine initial agent
+    active_agent = settings.default_agent
+    if not active_agent or active_agent not in registry.agent_names:
+        active_agent = registry.agent_names[0] if registry.agent_names else ""
 
-    _print_banner(registry)
+    _print_banner(registry, active_agent)
 
-    facts = memory_mgr.get_all_facts()
-    if facts:
-        console.print(f"[dim]Memory:[/] {len(facts)} facts remembered about you")
+    # Show memory count
+    memories = memory.get_all_memories()
+    if memories:
+        console.print(f"[dim]Memory:[/] {len(memories)} memories loaded")
 
     while True:
         try:
-            user_input = Prompt.ask("\n[bold green]You[/]")
+            prompt_label = f"\n[bold green]You[/] [dim]→ {active_agent}[/]"
+            user_input = Prompt.ask(prompt_label)
         except (KeyboardInterrupt, EOFError):
             console.print("\n[dim]Goodbye![/]")
             break
@@ -75,66 +99,124 @@ async def _run_loop() -> None:
         if not user_input.strip():
             continue
 
+        cmd = user_input.strip()
+        cmd_lower = cmd.lower()
+
         # ── Slash commands ────────────────────────────
-        cmd = user_input.strip().lower()
-        if cmd in ("/quit", "/exit", "/q"):
+        if cmd_lower in ("/quit", "/exit", "/q"):
             console.print("[dim]Goodbye![/]")
             break
-        if cmd == "/help":
-            console.print(
-                Markdown(
-                    "**Commands:**\n"
-                    "- `/agents` — list loaded agents\n"
-                    "- `/memory` — show remembered facts\n"
-                    "- `/quit` — exit\n"
+
+        if cmd_lower == "/help":
+            _print_help()
+            continue
+
+        if cmd_lower == "/agents":
+            table = Table(title="Available Agents", border_style="cyan")
+            table.add_column("Name", style="cyan bold")
+            table.add_column("Role")
+            table.add_column("Model", style="dim")
+            for info in orchestrator.get_available_agents():
+                marker = " ◀" if info["name"] == active_agent else ""
+                table.add_row(
+                    f"{info['name']}{marker}",
+                    info["role"],
+                    info["model"],
                 )
-            )
+            console.print(table)
             continue
-        if cmd == "/agents":
-            for name, agent in registry.get_all().items():
-                console.print(f"  [cyan]{name}[/] — {agent.description}")
+
+        if cmd_lower.startswith("/use "):
+            new_agent = cmd[5:].strip()
+            if new_agent in registry.agent_names:
+                active_agent = new_agent
+                cfg = registry.get_config(active_agent)
+                role = cfg.role if cfg else ""
+                console.print(f"[green]✔[/] Switched to [bold cyan]{active_agent}[/] ({role})")
+            else:
+                available = ", ".join(registry.agent_names)
+                console.print(f"[red]Agent '{new_agent}' not found.[/] Available: {available}")
             continue
-        if cmd == "/memory":
-            facts = memory_mgr.get_all_facts()
-            if facts:
+
+        if cmd_lower == "/pipelines":
+            table = Table(title="Available Pipelines", border_style="magenta")
+            table.add_column("Name", style="magenta bold")
+            table.add_column("Description")
+            table.add_column("Steps", style="dim")
+            for p in orchestrator.get_available_pipelines():
+                steps_str = " → ".join(s["agent"] for s in p["steps"])
+                table.add_row(p["name"], p["description"], steps_str)
+            console.print(table)
+            continue
+
+        if cmd_lower.startswith("/pipeline "):
+            parts = cmd[10:].strip().split(" ", 1)
+            pipeline_name = parts[0]
+            user_request = parts[1] if len(parts) > 1 else ""
+            if not user_request:
+                console.print("[yellow]Usage: /pipeline <name> <description>[/]")
+                continue
+
+            console.print(f"\n[bold magenta]Pipeline:[/] {pipeline_name}")
+            with console.status("[bold magenta]Running pipeline…[/]"):
+                results = orchestrator.run_pipeline(pipeline_name, user_request)
+
+            for r in results:
+                console.print(f"\n[bold blue]{r['agent']}[/] — {r['step']}")
+                console.print(Markdown(r["output"]))
+            continue
+
+        if cmd_lower == "/memory":
+            memories = memory.get_all_memories()
+            if memories:
+                lines = []
+                for m in memories:
+                    text = m.get("memory", m.get("text", str(m)))
+                    mid = m.get("id", "?")
+                    lines.append(f"• {text}  [dim](id: {mid})[/]")
                 console.print(Panel(
-                    "\n".join(f"• {f['fact']}" for f in facts),
-                    title="🧠 What I Remember",
+                    "\n".join(lines),
+                    title="🧠 Memories",
                     border_style="magenta",
                 ))
             else:
-                console.print("[dim]No facts remembered yet. Keep chatting![/]")
+                console.print("[dim]No memories yet. Keep chatting![/]")
             continue
 
-        # ── Run the Steward ───────────────────────────
-        with console.status("[bold cyan]Thinking…[/]"):
-            try:
-                result = await Runner.run(steward, input=user_input, session=session)
-                response = result.final_output
-            except Exception as exc:
-                logger.exception("Error running agent")
-                response = f"⚠️  Something went wrong: {exc}"
+        if cmd_lower.startswith("/memory search "):
+            query = cmd[15:].strip()
+            results = memory.search_memory(query)
+            if results:
+                lines = []
+                for m in results:
+                    text = m.get("memory", m.get("text", str(m)))
+                    score = m.get("score", "")
+                    score_str = f" (score: {score:.2f})" if score else ""
+                    lines.append(f"• {text}{score_str}")
+                console.print(Panel(
+                    "\n".join(lines),
+                    title=f"🔍 Search: {query}",
+                    border_style="blue",
+                ))
+            else:
+                console.print(f"[dim]No memories found for '{query}'[/]")
+            continue
 
-        console.print(f"\n[bold blue]Steward[/]")
+        # ── Run the active agent ──────────────────────
+        if not active_agent:
+            console.print("[red]No agent selected. Use /use <agent_name> to select one.[/]")
+            continue
+
+        with console.status(f"[bold cyan]{active_agent} is thinking…[/]"):
+            response = orchestrator.run_single(active_agent, cmd)
+
+        console.print(f"\n[bold blue]{active_agent}[/]")
         console.print(Markdown(response))
-
-        # ── Extract and save facts (background, non-blocking) ──
-        memory_mgr.touch_conversation(conv["id"])
-        try:
-            await memory_mgr.extract_and_save_facts(
-                user_message=user_input,
-                assistant_response=response,
-                session_id=conv["id"],
-            )
-            # Rebuild steward with updated facts for next turn
-            steward = build_steward(registry, memory_manager=memory_mgr)
-        except Exception:
-            logger.debug("Fact extraction failed (non-critical)", exc_info=True)
 
 
 def cli() -> None:
     """Entry point registered in pyproject.toml."""
-    parser = argparse.ArgumentParser(description="OpenVassal — AI Personal Assistant")
+    parser = argparse.ArgumentParser(description="OpenVassal — Personal Knowledge Base")
     parser.add_argument(
         "--setup", action="store_true",
         help="Launch the web-based configuration UI",
@@ -149,6 +231,7 @@ def cli() -> None:
 
     if args.setup:
         from openvassal.web.server import start_server
+        import webbrowser
 
         url = f"http://127.0.0.1:{args.port}"
         console.print(
@@ -164,7 +247,7 @@ def cli() -> None:
         return
 
     try:
-        asyncio.run(_run_loop())
+        _run_loop()
     except KeyboardInterrupt:
         console.print("\n[dim]Goodbye![/]")
         sys.exit(0)

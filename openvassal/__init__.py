@@ -1,3 +1,3 @@
-"""OpenVassal — AI Personal Assistant Multi-Agent System."""
+"""OpenVassal — Personal knowledge base with multi-agent orchestration."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

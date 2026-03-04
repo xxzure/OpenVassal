@@ -1,19 +1,78 @@
 # ──────────────────────────────────────────────────────────
-#  Agent Registry Configuration
-#  Add / remove agents by editing this file.
-#  The Steward agent discovers sub-agents from this list.
+#  Agent Registry Configuration (CrewAI)
+#  Each agent is a CrewAI Agent with role, goal, backstory, and model.
+#  Pipelines define multi-step workflows between agents.
 # ──────────────────────────────────────────────────────────
 
 agents:
-- name: coding
-  module: openvassal.agents.coding
-  class: CodingAgent
-  description: Code generation, review, debugging, and technical assistance
-  model: litellm/gemini/gemini-2.5-flash
-  enabled: true
-- name: daily_work
-  module: openvassal.agents.daily_work
-  class: DailyWorkAgent
-  description: Calendar, tasks, email triage, and daily productivity
-  model: litellm/gemini/gemini-2.5-flash
-  enabled: true
+  - name: claude_planner
+    role: "Technical Architect & Code Reviewer"
+    goal: "Create detailed implementation plans, review code quality, and provide architectural guidance"
+    backstory: >
+      You are a senior technical architect with deep expertise in system design,
+      code quality, and security. You excel at breaking down complex problems into
+      clear implementation plans and providing thorough code reviews.
+    model: "anthropic/claude-sonnet-4-20250514"
+    tools: []
+    enabled: true
+
+  - name: coder
+    role: "Senior Software Engineer"
+    goal: "Write clean, well-documented, production-quality code"
+    backstory: >
+      You are a full-stack developer who writes clean, well-tested code.
+      You follow best practices and always include documentation. You can
+      save code snippets for later reference.
+    model: "openai/gpt-4o"
+    tools: [coding]
+    enabled: true
+
+  - name: gemini_chat
+    role: "Knowledge Assistant"
+    goal: "Answer questions, explain concepts, and help with research"
+    backstory: >
+      You are an encyclopedic knowledge assistant with broad expertise.
+      You explain complex topics clearly and provide accurate, well-sourced answers.
+    model: "gemini/gemini-2.5-flash"
+    tools: []
+    enabled: true
+
+  - name: daily_assistant
+    role: "Productivity Assistant"
+    goal: "Help manage tasks, notes, schedules, and daily productivity"
+    backstory: >
+      You are an organized productivity assistant who helps manage tasks,
+      take notes, plan schedules, and improve the user's workflow.
+    model: "gemini/gemini-2.5-flash"
+    tools: [daily_work]
+    enabled: true
+
+  - name: kimi_writer
+    role: "Chinese Technical Writer"
+    goal: "Write high-quality technical documentation and content in Chinese"
+    backstory: >
+      You are a skilled technical writer fluent in Chinese. You excel at
+      writing clear, well-structured technical documentation, blog posts,
+      and articles.
+    model: "openai/moonshot-v1-32k"
+    tools: []
+    enabled: false  # Enable after setting MOONSHOT_API_KEY
+
+pipelines:
+  - name: plan-code-review
+    description: "Plan → Code → Review workflow"
+    steps:
+      - agent: claude_planner
+        task: "Analyze the requirement and create a detailed implementation plan with file structure, key decisions, and step-by-step approach"
+      - agent: coder
+        task: "Implement the code based on the plan from the previous step. Write clean, well-documented code"
+      - agent: claude_planner
+        task: "Review the code from the previous step for quality, security, best practices, and correctness. Provide specific feedback"
+
+  - name: research-summarize
+    description: "Research → Summarize workflow"
+    steps:
+      - agent: gemini_chat
+        task: "Research the topic thoroughly and provide a comprehensive analysis with key findings"
+      - agent: claude_planner
+        task: "Summarize the research into actionable insights and recommendations"
