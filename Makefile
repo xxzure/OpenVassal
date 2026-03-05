@@ -3,8 +3,8 @@
 # ─────────────────────────────────────────────────────────────
 
 SHELL      := /bin/bash
-PYTHON     := python3
-VENV       := .venv
+PYTHON     := python3.13
+VENV       := .venv313
 BIN        := $(VENV)/bin
 PIP        := $(BIN)/pip
 APP        := $(BIN)/openvassal
@@ -20,10 +20,12 @@ setup: $(VENV) .env ## Create venv, install deps, and prepare .env
 	@echo "✅  Setup complete. Run 'make run' to start."
 
 $(VENV): pyproject.toml
-	$(PYTHON) -m venv $(VENV)
-	$(PIP) install --upgrade pip -q
-	$(PIP) install -e ".[dev]" -q
-	@touch $(VENV)
+	@if [ ! -e $(BIN)/python3 ] && [ ! -e $(BIN)/python ]; then \
+		$(PYTHON) -m venv $(VENV); \
+		$(PIP) install --upgrade pip -q; \
+		$(PIP) install -e ".[dev]" -q; \
+		touch $(VENV); \
+	fi
 
 .env:
 	@cp .env.example .env

@@ -22,7 +22,20 @@ def _project_root() -> Path:
 
 
 _ROOT = _project_root()
-_ENV_FILE = str(_ROOT / ".env")
+
+
+def _safe_env_file() -> str | None:
+    """Return .env path only if it's accessible (avoids macOS sandbox PermissionError)."""
+    env_path = _ROOT / ".env"
+    try:
+        if env_path.is_file():
+            return str(env_path)
+    except (PermissionError, OSError):
+        logger.debug("Cannot access .env file — using environment variables only")
+    return None
+
+
+_ENV_FILE = _safe_env_file()
 
 
 class Settings(BaseSettings):
@@ -99,23 +112,29 @@ class Settings(BaseSettings):
         from dotenv import dotenv_values
 
         env_path = self.project_root / ".env"
-        if env_path.exists():
-            vals = dotenv_values(env_path)
-            for attr, env_key in [
-                ("openai_api_key", "OPENAI_API_KEY"),
-                ("anthropic_api_key", "ANTHROPIC_API_KEY"),
-                ("gemini_api_key", "GEMINI_API_KEY"),
-                ("moonshot_api_key", "MOONSHOT_API_KEY"),
-                ("default_agent", "DEFAULT_AGENT"),
-                ("mem0_user_id", "MEM0_USER_ID"),
-            ]:
-                if env_key in vals:
-                    setattr(self, attr, vals[env_key] or getattr(self, attr))
-            # Re-export keys to env
-            self.model_post_init(None)
-            logger.info("Settings reloaded")
+        try:
+            if not env_path.exists():
+                return
+        except (PermissionError, OSError):
+            logger.debug("Cannot access .env for reload")
+            return
+        vals = dotenv_values(env_path)
+        for attr, env_key in [
+            ("openai_api_key", "OPENAI_API_KEY"),
+            ("anthropic_api_key", "ANTHROPIC_API_KEY"),
+            ("gemini_api_key", "GEMINI_API_KEY"),
+            ("moonshot_api_key", "MOONSHOT_API_KEY"),
+            ("default_agent", "DEFAULT_AGENT"),
+            ("mem0_user_id", "MEM0_USER_ID"),
+        ]:
+            if env_key in vals:
+                setattr(self, attr, vals[env_key] or getattr(self, attr))
+        # Re-export keys to env
+        self.model_post_init(None)
+        logger.info("Settings reloaded")
 
 
 # Singleton — import this everywhere
 settings = Settings()
-logger.info("Settings loaded: env_file=%s", _ENV_FILE)
+logger.info("Settings loaded: env_file=%s", _ENV_FILE or "(env vars only)")
+
